@@ -43,7 +43,7 @@ Converts the dictionary *package* into a package file and writes it to *file*.
 
 **search(subfiles, ntype=-1, ngroup=-1, ninstance=-1, ninstance2=-1, get_first=False)**
 
-searches the package's files for the desired type, group, instance, or high instance, returns a list of the indexes of the files matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
+searches the package's files for the desired type, group, instance, or high instance, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
 
 **compress(subfile)**
 
