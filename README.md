@@ -123,7 +123,7 @@ The length of the holes index.
 
 The index version, between 0 and 2.
 
-**'remainder':** 32 bytes
+**'remainder':** bytes
 
 What remains of the header.
 
