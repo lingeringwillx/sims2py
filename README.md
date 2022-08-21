@@ -31,7 +31,7 @@ Returns a copy of *object*. Identical to copy.deepcopy from the standard library
 
 **read_package(file)**
 
-Reads a package file and returns a dictionary containing its data. For information on the dictionary, check the [next section](#dictionaries)
+Reads a package file and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
 
 **create_package()**
 
