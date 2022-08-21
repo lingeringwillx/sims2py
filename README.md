@@ -155,3 +155,20 @@ File-like object stored in memory containing the entry itself.
 **'compressed':** bool
 
 Indicates whether the entry is compressed or not.
+
+## Resources
+General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
+
+Useful image showing the game's file format: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
+
+Information on the various file types found in the package file's entries (A little dated): https://modthesims.info/wiki.php?title=Category:InternalFormats
+
+Information on the compression used by the game's files: https://modthesims.info/wiki.php?title=DBPF_Compression
+
+Original code for the library I used for the compression and decompression code: www.moreawesomethanyou.com/smf/index.php/topic,8279.0.html
+
+Notepad++ with the HEX-Editor plugin was useful for viewing the game's files: https://notepad-plus-plus.org/
+
+SimPE also has a hex viewer, but it only shows you uncompressed entries: https://modthesims.info/showthread.php?t=630456
+
+I used this tool to compare my edited files to the original files: https://github.com/Shelwien/cmp/
