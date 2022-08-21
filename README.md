@@ -4,7 +4,7 @@
 2- To enable quick script editing of the game's files .
 
 ## Documentation
-## Functions:
+### Functions:
 **read(file, numbytes, endian='little')**
 
 Reads *numbytes* from *file* and converts it into an integer. The endian can be specified with the *endian* argument.
@@ -57,10 +57,10 @@ returns a copy of *subfile* with it's content decompressed. If the content of *s
 
 displays the type, group, and instance of a *subfile*
 
-## Dictionaries
+### Dictionaries
 Structure of dictionaries created by this script:
 
-### Package (dict)
+#### Package (dict)
 Dictionary containing *Header* and *Subfiles*
 
 -----
