@@ -138,7 +138,7 @@ What remains of the header.
 -----
 
 #### Subfiles (list of dicts)
-Each element in this list contains the following:
+Usually called *entries*. Each element in this list contains the following:
 
 **'type':** int
 
