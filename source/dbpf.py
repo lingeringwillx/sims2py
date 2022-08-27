@@ -29,7 +29,7 @@ subfile: #aka entries
 'type': int #entry type
 'group': int #entry group
 'instance': int #entry instance
-'instance2': int #entry second instance, only exists if the entry has a second instance (if the index minor version is 2)
+'resource': int #entry second instance, only exists if the entry has a second instance (if the index minor version is 2)
 'content' = BytesIO #file-like object stored in memory containing the entry itself
 'compressed' = bool #indicates whether the entry is compressed or not
 """
@@ -118,7 +118,7 @@ def read_package(file):
         subfile['instance'] = int.from_bytes(file.read(4), 'little')
         
         if header['index minor version'] == 2:
-            subfile['instance2'] = int.from_bytes(file.read(4), 'little')
+            subfile['resource'] = int.from_bytes(file.read(4), 'little')
             
             file.seek(-16, 1)
             keys.append(file.read(16))
@@ -223,7 +223,7 @@ def write_package(file, package):
         clst_file['instance'] = 0x286B1F03
         
         if header['index minor version'] == 2:
-            clst_file['instance2'] = 0x00000000
+            clst_file['resource'] = 0x00000000
         
         clst_file['content'] = BytesIO()
         
@@ -283,27 +283,27 @@ def write_package(file, package):
     write(file, index_end - index_start, 4) #index size
     write(file, 0, 12) #hole index entries
     
-def search(subfiles, ntype=-1, ngroup=-1, ninstance=-1, ninstance2=-1, get_first=False):
+def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, get_first=False):
     indices = []
     for i, subfile in enumerate(subfiles):
-        type_match = ntype == -1 or ntype == subfile['type']
+        type_match = type_id == -1 or type_id == subfile['type']
         
         if not type_match:
             continue
         
-        group_match = ngroup == -1 or ngroup == subfile['group']
+        group_match = group_id == -1 or group_id == subfile['group']
         
         if not group_match:
             continue
         
-        instance_match = ninstance == -1 or ninstance == subfile['instance']
+        instance_match = instance_id == -1 or instance_id == subfile['instance']
         
         if not instance_match:
             continue
         
-        instance2_match = ninstance2 == -1 or ninstance2 == subfile['instance2']
+        resource_match = resource_id == -1 or resource_id == subfile['resource']
         
-        if not instance2_match:
+        if not resource_match:
             continue
         
         indices.append(i)
@@ -365,8 +365,8 @@ def decompress(subfile):
         return copy(subfile)
         
 def print_TGI(subfile):
-    if 'instance2' in subfile:
-        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Instance2: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance'], subfile['instance2']))
+    if 'resource' in subfile:
+        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance'], subfile['resource']))
     else:
         print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance']))
         
@@ -376,7 +376,7 @@ def build_index(subfiles):
     index['types'] = {}
     index['groups'] = {}
     index['instances'] = {}
-    index['instances2'] = {}
+    index['resources'] = {}
     
     for i, subfile in enumerate(subfiles):
         if subfile['type'] not in index['types']:
@@ -394,17 +394,17 @@ def build_index(subfiles):
             
         index['instances'][subfile['instance']].add(i)
             
-        if 'instance2' in subfile:
-            if subfile['instance2'] not in index['instances2']:
-                index['instances2'][subfile['instance2']] = set()
+        if 'resource' in subfile:
+            if subfile['resource'] not in index['resources']:
+                index['resources'][subfile['resource']] = set()
                 
-            index['instances2'][subfile['instance2']].add(i)
+            index['resources'][subfile['resource']].add(i)
         
     return index
     
 #faster search
-def index_search(index, ntype=-1, ngroup=-1, ninstance=-1, ninstance2=-1):
-    keys = ['types', 'groups', 'instances', 'instances2']
-    values = [ntype, ngroup, ninstance, ninstance2]
+def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1):
+    keys = ['types', 'groups', 'instances', 'resources']
+    values = [type_id, group_id, instance_id, resource_id]
     
     return set.intersection(*[index[key][value] for key, value in zip(keys, values) if value != -1])
