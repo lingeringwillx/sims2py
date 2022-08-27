@@ -43,7 +43,7 @@ Converts the dictionary *package* into a package file and writes it to *file*.
 
 **search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, get_first=False)**
 
-searches the package's files for the desired type, group, instance, or high instance, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
+searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
 
 **compress(subfile)**
 
@@ -152,9 +152,9 @@ Entry group.
 
 Entry instance.
 
-**'instance2':** int
+**'resource':** int
 
-Entry second instance, only exists if the entry has a second instance (if the index minor version is 2).
+Entry resource, only exists if the *index minor version* of the *header* is 2.
 
 **'content':** BytesIO
 
