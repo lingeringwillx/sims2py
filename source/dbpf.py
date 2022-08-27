@@ -66,7 +66,7 @@ def read_str(file):
     return content.decode('utf-8')
     
 def write_str(file, string):
-    file.write(string.encode('utf-8'))
+    return file.write(string.encode('utf-8'))
     
 def get_size(file):
     current_position = file.tell()
@@ -199,9 +199,9 @@ def create_package():
     
     return {'header': header, 'subfiles': []}
     
-def write_package(file, file_dict):
-    header = file_dict['header']
-    subfiles = file_dict['subfiles']
+def write_package(file, package):
+    header = package['header']
+    subfiles = package['subfiles']
     
     file.seek(0)
     
@@ -369,3 +369,42 @@ def print_TGI(subfile):
         print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Instance2: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance'], subfile['instance2']))
     else:
         print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance']))
+        
+#for faster searching
+def build_index(subfiles):
+    index = {}
+    index['types'] = {}
+    index['groups'] = {}
+    index['instances'] = {}
+    index['instances2'] = {}
+    
+    for i, subfile in enumerate(subfiles):
+        if subfile['type'] not in index['types']:
+            index['types'][subfile['type']] = set()
+            
+        index['types'][subfile['type']].add(i)
+        
+        if subfile['group'] not in index['groups']:
+            index['groups'][subfile['group']] = set()
+            
+        index['groups'][subfile['group']].add(i)
+            
+        if subfile['instance'] not in index['instances']:
+            index['instances'][subfile['instance']] = set()
+            
+        index['instances'][subfile['instance']].add(i)
+            
+        if 'instance2' in subfile:
+            if subfile['instance2'] not in index['instances2']:
+                index['instances2'][subfile['instance2']] = set()
+                
+            index['instances2'][subfile['instance2']].add(i)
+        
+    return index
+    
+#faster search
+def index_search(index, ntype=-1, ngroup=-1, ninstance=-1, ninstance2=-1):
+    keys = ['types', 'groups', 'instances', 'instances2']
+    values = [ntype, ngroup, ninstance, ninstance2]
+    
+    return set.intersection(*[index[key][value] for key, value in zip(keys, values) if value != -1])
