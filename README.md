@@ -55,7 +55,15 @@ returns a copy of *subfile* with it's content decompressed. If the content of *s
 
 **print_TGI(subfile)**
 
-displays the type, group, and instance of a *subfile*
+displays the type, group, and instance of a *subfile*.
+
+**build_index(subfiles)**
+
+returns an index that enables faster searching of *subfiles* using the *index_search* function. The returned index does **NOT** get updated when making changes to *subfiles* after the function is called.
+
+**index_search(index, ntype=-1, ngroup=-1, ninstance=-1, ninstance2=-1)**
+
+similar to the *search* function, but uses the index created by *build_index* for faster searching.
 
 ### Dictionaries
 Structure of dictionaries created by this script:
