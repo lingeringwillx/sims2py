@@ -59,7 +59,7 @@ displays the type, group, and instance of a *subfile*.
 
 **build_index(subfiles)**
 
-returns an index that enables faster searching of *subfiles* using the *index_search* function. The returned index does **NOT** get updated when making changes to *subfiles* after the function is called.
+returns an index that enables faster searching of *subfiles* using the *index_search* function. The returned index does NOT get updated when making changes to *subfiles* after the function is called.
 
 **index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1)**
 
