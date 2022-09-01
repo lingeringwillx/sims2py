@@ -4,7 +4,25 @@
 2- To enable quick script editing of the game's files .
 
 ## Documentation
-### Functions:
+### Getting Started
+**Requirements:** Requires Windows and Python 3.7 or higher.
+
+**Installation:** Download the build, then make a python file in the same directory as the library and write `import dbpf` to import the library.
+
+**Compilation:**
+If you want to compile the library, you will need the following:
+
+1- MinGW
+
+2- MinGW 64-bit
+
+3- Visual Studio C++ Build Tools
+
+4- Cython
+
+To compile the library run the compile batch file.
+
+### Functions
 **read(file, numbytes, endian='little')**
 
 Reads *numbytes* from *file* and converts it into an integer. The endian can be specified with the *endian* argument.
