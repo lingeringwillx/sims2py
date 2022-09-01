@@ -4,21 +4,25 @@ g++ -static -shared -o dbpf32.dll dbpf.o
 x86_64-w64-mingw32-g++ -c dbpf.cpp
 x86_64-w64-mingw32-g++ -static -shared -o dbpf64.dll dbpf.o
 
-py -3-64 setup.py build_ext --inplace
-py -3-32 setup.py build_ext --inplace
+copy dbpf.pyx dbpf64.pyx
+copy dbpf.pyx dbpf32.pyx
 
+py -3-64 setup64.py build_ext --inplace
+py -3-32 setup32.py build_ext --inplace
+
+del dbpf64.pyx
+del dbpf32.pyx
 del dbpf.o
-del dbpf.c
+del dbpf64.c
+del dbpf32.c
 @RD /S /Q build
 
 mkdir build
-mkdir build\64bit
-mkdir build\32bit
 
-move dbpf64.dll build\64bit\dbpf.dll
-move dbpf32.dll build\32bit\dbpf.dll
-
-move dbpf.cp310-win_amd64.pyd build\64bit\dbpf.cp310-win_amd64.pyd
-move dbpf.cp310-win32.pyd build\32bit\dbpf.cp310-win32.pyd
+move dbpf64.dll build\dbpf64.dll
+move dbpf32.dll build\dbpf32.dll
+move dbpf64.cp310-win_amd64.pyd build\dbpf64.cp310-win_amd64.pyd
+move dbpf32.cp310-win32.pyd build\dbpf32.cp310-win32.pyd
+copy dbpf.py build\dbpf.py
 
 pause
