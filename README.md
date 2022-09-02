@@ -1,7 +1,7 @@
 ## Purpose
 1- To make it easier to access and read the game's data.
 
-2- To enable quick script editing of the game's files .
+2- To enable quick script editing of the game's files.
 
 ## Documentation
 ### Getting Started
@@ -20,14 +20,14 @@ If you want to compile the library yourself, you will need the following:
 
 4- Cython
 
-To compile the library run the compile batch file.
+To compile the library, run the compile.bat file.
 
 ### Functions
-**read(file, numbytes, endian='little')**
+**read_int(file, numbytes, endian='little')**
 
 Reads *numbytes* from *file* and converts it into an integer. The endian can be specified with the *endian* argument.
 
-**write(file, num, numbytes, endian='little')**
+**write_int(file, num, numbytes, endian='little')**
 
 Converts *num* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*.
 
@@ -53,7 +53,7 @@ Reads a package file and returns a dictionary containing its data. For informati
 
 **create_package()**
 
-Creates a dictionary containing the data necessary to create an empty package file.
+Creates a dictionary containing the data necessary to make an empty package file.
 
 **write_package(file, package)**
 
