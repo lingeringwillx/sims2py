@@ -7,8 +7,8 @@ x86_64-w64-mingw32-g++ -static -shared -o dbpf64.dll dbpf.o
 copy dbpf.pyx dbpf64.pyx
 copy dbpf.pyx dbpf32.pyx
 
-py -3-64 setup64.py build_ext --inplace
-py -3-32 setup32.py build_ext --inplace
+py -3-64 setup.py build_ext --inplace
+py -3-32 setup.py build_ext --inplace
 
 del dbpf64.pyx
 del dbpf32.pyx

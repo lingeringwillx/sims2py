@@ -1,5 +1,3 @@
-# cython: profile=True
-
 from copy import deepcopy as copy
 from io import BytesIO
 import ctypes
@@ -106,9 +104,6 @@ def read_package(file):
     
     #read index
     subfiles = []
-    #the keys are for checking if the file is compressed later, just for increasing execution speed
-    #so that we don't need to spend time converting the CLST entries to integers
-    keys = []
     
     file.seek(header['index location'])
     for i in range(header['index entry count']):
@@ -122,13 +117,6 @@ def read_package(file):
         if header['index minor version'] == 2:
             subfile['resource'] = int.from_bytes(file.read(4), 'little')
             
-            file.seek(-16, 1)
-            keys.append(file.read(16))
-            
-        else:
-            file.seek(-12, 1)
-            keys.append(file.read(12))
-            
         location = int.from_bytes(file.read(4), 'little')
         size = int.from_bytes(file.read(4), 'little')
         
@@ -138,7 +126,22 @@ def read_package(file):
         file.seek(position)
         
         subfiles.append(subfile)
+        
+    #make keys
+    #the keys are for checking if the file is compressed later, just for increasing execution speed
+    #so that we don't need to spend time converting the CLST entries to integers
+    keys = []
     
+    if header['index minor version'] == 2:
+        size = 16
+    else:
+        size = 12
+        
+    file.seek(header['index location'])
+    for i in range(header['index entry count']):
+        keys.append(file.read(size))
+        file.seek(8, 1)
+        
     #read CLST
     #using a set for speed
     compressed_files = set()
