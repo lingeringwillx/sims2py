@@ -150,7 +150,7 @@ def read_package(file):
     if len(results) > 0:
         i = results[0]
         clst_file = subfiles[i]
-        length = get_size(clst_file['content'])
+        file_size = get_size(clst_file['content'])
         
         if header['index minor version'] == 2:
             entry_size = 20
@@ -160,7 +160,7 @@ def read_package(file):
             tgi_size = 12
         
         clst_file['content'].seek(0)
-        for i in range(length // entry_size):
+        for i in range(file_size // entry_size):
             entry = clst_file['content'].read(tgi_size)
             
             if entry not in clst_entries:
@@ -303,7 +303,7 @@ def write_package(file, package):
         write_int(file, clst_file['instance'], 4)
         
         if header['index minor version'] == 2:
-            write_int(file, subfile['resource'], 4)   
+            write_int(file, clst_file['resource'], 4)   
             
         write_int(file, clst_file['location'], 4)
         write_int(file, clst_file['size'], 4)
