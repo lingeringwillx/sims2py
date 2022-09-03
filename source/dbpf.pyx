@@ -152,12 +152,16 @@ def read_package(file):
         clst_file = subfiles[i]
         length = get_size(clst_file['content'])
         
+        if header['index minor version'] == 2:
+            entry_size = 20
+            tgi_size = 16
+        else:
+            entry_size = 16
+            tgi_size = 12
+        
         clst_file['content'].seek(0)
-        while clst_file['content'].tell() < length:
-            if header['index minor version'] == 2:
-                entry = clst_file['content'].read(16)
-            else:
-                entry = clst_file['content'].read(12)
+        for i in range(length // entry_size):
+            entry = clst_file['content'].read(tgi_size)
             
             if entry not in clst_entries:
                 clst_entries.add(entry)
