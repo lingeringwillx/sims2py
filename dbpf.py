@@ -435,4 +435,4 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1)
     keys = ['types', 'groups', 'instances', 'resources']
     values = [type_id, group_id, instance_id, resource_id]
     
-    return set.intersection(*[index[key][value] for key, value in zip(keys, values) if value != -1])
+    return list(set.intersection(*[index[key][value] for key, value in zip(keys, values) if value != -1]))
