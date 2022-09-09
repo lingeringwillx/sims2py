@@ -1,3 +1,2 @@
 *.h linguist-language=C++
-*.pyx linguist-language=Python
 *.bat linguist-vendored
