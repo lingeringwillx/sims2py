@@ -82,12 +82,12 @@ similar to the *search* function, but uses the index created by *build_index* fo
 ### Dictionaries
 Structure of dictionaries created by this script:
 
-#### Package (dict)
-Dictionary containing *Header* and *Subfiles*
+#### package (dict)
+Dictionary containing *header* and *subfiles*
 
 -----
 
-#### Header (dict)
+#### header (dict)
 
 **'major version':** int
 
@@ -151,7 +151,7 @@ What remains of the header.
 
 -----
 
-#### Subfiles (list of dicts)
+#### subfiles (list of dicts)
 Usually called *entries*. Each element in this list contains the following:
 
 **'type':** int
