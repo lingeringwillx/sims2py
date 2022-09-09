@@ -16,10 +16,6 @@ If you want to compile the library yourself, you will need the following:
 
 2- MinGW 64-bit
 
-3- Visual Studio C++ Build Tools
-
-4- Cython
-
 To compile the library, run the compile.bat file.
 
 ### Functions
