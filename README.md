@@ -5,7 +5,7 @@
 
 ## Documentation
 ### Getting Started
-**Requirements:** Requires Windows and Python 3.7 or higher.
+**Requirements:** Requires Windows and Python 3.2 or higher.
 
 **Installation:** Download the build, then make a python file in the same directory as the library and write `import dbpf` to import the library.
 
