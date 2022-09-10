@@ -10,7 +10,7 @@
 **Installation:** Download the build, then make a python file in the same directory as the library and write `import dbpf` to import the library.
 
 **Compilation:**
-If you want to compile the library yourself, you will need the following:
+If you want to compile the C library yourself, you will need the following:
 
 1- MinGW
 
