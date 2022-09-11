@@ -39,10 +39,6 @@ Writes *string* into *file*
 
 Returns the size/length of *file*
 
-**copy(object)**
-
-Returns a copy of *object*. Identical to copy.deepcopy from the standard library.
-
 **read_package(file)**
 
 Reads a package file and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
@@ -58,6 +54,18 @@ Converts the dictionary *package* into a package file and writes it to *file*.
 **search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, get_first=False)**
 
 searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
+
+**copy_package(package)**
+
+creates a copy of *package* and returns it.
+
+**copy_header(header)**
+
+creates a copy of *header* and returns it.
+
+**copy_subfile(subfile)**
+
+creates a copy of *subfile* and returns it.
 
 **compress(subfile)**
 
