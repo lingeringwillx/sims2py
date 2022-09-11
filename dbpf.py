@@ -1,4 +1,3 @@
-from copy import deepcopy as copy
 from io import BytesIO
 import ctypes
 import sys
@@ -176,6 +175,9 @@ def read_package(file):
         
         if index_entry in clst_entries:
             subfile['content'].seek(4)
+            
+            #entries can be in the CLST file even if they're not compressed
+            #so a second check for compression would be good
             if subfile['content'].read(2) == b'\x10\xfb':
                 subfile['compressed'] = True
                 
@@ -341,11 +343,42 @@ def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, ge
             
     return indices
     
+#copy.deepcopy from the standard library takes too much time, better to write our own functions
+def copy_package(package):
+    package_copy = {}
+    package_copy['header'] = copy_header(package['header'])
+    package_copy['subfiles'] = [copy_subfile(subfile) for subfile in package['subfiles']]
+    
+    return package_copy
+    
+def copy_header(header):
+    header_copy = {}
+    for key, value in header.items():
+        header_copy[key] = value
+        
+    return header_copy
+    
+def copy_subfile(subfile):
+    subfile_copy = {}
+    subfile_copy['type'] = subfile['type']
+    subfile_copy['group'] = subfile['group']
+    subfile_copy['instance'] = subfile['instance']
+    
+    if 'resource' in subfile:
+        subfile_copy['resource'] = subfile['resource']
+        
+    subfile['content'].seek(0)
+    subfile_copy['content'] = BytesIO(subfile['content'].read())
+    
+    subfile_copy['compressed'] = subfile['compressed']
+    
+    return subfile_copy
+    
 #using C++ library from moreawesomethanyou   
 def compress(subfile):
     if subfile['compressed']:
         subfile['content'].seek(0)
-        return copy(subfile)
+        return copy_subfile(subfile)
         
     else:
         subfile['content'].seek(0)
@@ -357,7 +390,7 @@ def compress(subfile):
         dst_len = clib.try_compress(src, src_len, dst)
         
         if dst_len > 0:
-            new_subfile = copy(subfile)
+            new_subfile = copy_subfile(subfile)
             new_subfile['content'] = BytesIO(dst.raw[:dst_len])
             new_subfile['compressed'] = True
             return new_subfile
@@ -380,7 +413,7 @@ def decompress(subfile):
         success = clib.decompress(src, compressed_size, dst, uncompressed_size, False)
         
         if success:
-            new_subfile = copy(subfile)
+            new_subfile = copy_subfile(subfile)
             new_subfile['content'] = BytesIO(dst.raw)
             new_subfile['compressed'] = False
             return new_subfile
@@ -390,7 +423,7 @@ def decompress(subfile):
         
     else:
         subfile['content'].seek(0)
-        return copy(subfile)
+        return copy_subfile(subfile)
         
 def print_TGI(subfile):
     if 'resource' in subfile:
