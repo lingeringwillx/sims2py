@@ -36,8 +36,8 @@ subfile: #aka entries
 if sys.platform != 'win32':
     raise Exception('The dbpf library currently only works in Windows')
     
-if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 7):
-    raise Exception('The dbpf library requires Python 3.7 or higher')
+if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
+    raise Exception('The dbpf library requires Python 3.2 or higher')
     
 is_64bit = sys.maxsize > 2 ** 32
 
