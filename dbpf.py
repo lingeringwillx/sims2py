@@ -377,7 +377,6 @@ def copy_subfile(subfile):
 #using C++ library from moreawesomethanyou   
 def compress(subfile):
     if subfile['compressed']:
-        subfile['content'].seek(0)
         return copy_subfile(subfile)
         
     else:
@@ -397,7 +396,7 @@ def compress(subfile):
             
         else:
             raise Exception('Could not compress the file')
-
+            
 #using C++ library from moreawesomethanyou 
 def decompress(subfile):
     if subfile['compressed']:
@@ -420,9 +419,8 @@ def decompress(subfile):
             
         else:
             raise Exception('Could not decompress the file')
-        
+            
     else:
-        subfile['content'].seek(0)
         return copy_subfile(subfile)
         
 def print_TGI(subfile):
