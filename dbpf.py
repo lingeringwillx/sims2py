@@ -1,5 +1,6 @@
 from io import BytesIO
 import ctypes
+import os
 import sys
 
 """
@@ -42,9 +43,9 @@ if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] 
 is_64bit = sys.maxsize > 2 ** 32
 
 if is_64bit:
-    clib = ctypes.cdll.LoadLibrary('./dbpf64.dll')
+    clib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(__file__),'dbpf64.dll'))
 else:
-    clib = ctypes.cdll.LoadLibrary('./dbpf32.dll')
+    clib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(__file__),'dbpf32.dll'))
     
 clib.decompress.restype = ctypes.c_bool
 
