@@ -191,7 +191,7 @@ General information on DBPF (Package) files (A little dated): https://modthesims
 
 Useful image showing the game's file format: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
 
-Information on the various file types found in the package file's entries (A little dated): https://modthesims.info/wiki.php?title=Category:InternalFormats
+Information on the various file types found in the package file's entries (A little dated): https://modthesims.info/wiki.php?title=List_of_Sims_2_Formats_by_Name
 
 Information on the compression used by the game's files: https://modthesims.info/wiki.php?title=DBPF_Compression
 
