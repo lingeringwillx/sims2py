@@ -54,10 +54,10 @@ class RepeatKeyError(Exception): pass
 class CompressionError(Exception): pass
 
 def read_uint(file, numbytes, endian='little'):
-    return int.from_bytes(file.read(numbytes), endian)
+    return int.from_bytes(file.read(numbytes), endian, signed=False)
     
 def write_uint(file, number, numbytes, endian='little'):
-    return file.write(number.to_bytes(numbytes, endian))
+    return file.write(number.to_bytes(numbytes, endian, signed=False))
 
 def read_int(file, numbytes, endian='little'):
     return int.from_bytes(file.read(numbytes), endian, signed=True)
