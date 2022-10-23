@@ -19,13 +19,21 @@ If you want to compile the C library yourself, you will need the following:
 To compile the library, run the compile.bat file.
 
 ### Functions
-**read_int(file, numbytes, endian='little', signed=False)**
+**read_uint(file, numbytes, endian='little')**
 
-Reads *numbytes* from *file* and converts it into an integer. The endian can be specified with the *endian* argument. The *signed* argument can be set to *True* for signed integers.
+Reads *numbytes* from *file* and converts it into an unsigned integer. The endian can be specified with the *endian* argument.
 
-**write_int(file, number, numbytes, endian='little', signed=False)**
+**write_uint(file, number, numbytes, endian='little')**
 
-Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*. The *signed* argument can be set to *True* for signed integers. 
+Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*.
+
+**read_int(file, numbytes, endian='little')**
+
+Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument.
+
+**write_int(file, number, numbytes, endian='little')**
+
+Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*.
 
 **read_float(file, endian='little')**
 
