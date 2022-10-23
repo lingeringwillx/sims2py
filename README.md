@@ -93,11 +93,11 @@ creates a copy of *subfile* and returns it.
 
 **compress(subfile)**
 
-Compresses the content of *subfile*. If the content of *subfile* is already compressed, then nothing happens. Returns a reference to subfile.
+Compresses the content of *subfile*. If the content of *subfile* is already compressed, then nothing happens. Returns a reference to subfile. Raises a *CompressionError* if compression fails.
 
 **decompress(subfile)**
 
-Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Returns a reference to subfile.
+Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Returns a reference to subfile. Raises a *CompressionError* if decompression fails.
 
 **print_TGI(subfile)**
 
