@@ -50,6 +50,9 @@ else:
     
 clib.decompress.restype = ctypes.c_bool
 
+class RepeatKeyError(Exception): pass
+class CompressionError(Exception): pass
+
 def read_int(file, numbytes, endian='little'):
     return int.from_bytes(file.read(numbytes), endian)
     
@@ -220,7 +223,7 @@ def read_package(file_path):
             if entry not in clst_entries:
                 clst_entries.add(entry)
             else:
-                raise Exception('Two entries with matching type, group, and instance found')
+                raise RepeatKeyError('Two entries with matching type, group, and instance found')
                 
             clst['content'].seek(4, 1)
             
@@ -431,9 +434,6 @@ def copy_subfile(subfile):
     subfile_copy['compressed'] = subfile['compressed']
     
     return subfile_copy
-    
-class CompressionError(Exception):
-    pass
     
 #using C++ library from moreawesomethanyou   
 def compress(subfile):
