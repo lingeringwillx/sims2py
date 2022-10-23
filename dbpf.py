@@ -1,6 +1,7 @@
 from io import BytesIO
 import ctypes
 import os
+import struct
 import sys
 
 """
@@ -52,10 +53,26 @@ clib.decompress.restype = ctypes.c_bool
 def read_int(file, numbytes, endian='little'):
     return int.from_bytes(file.read(numbytes), endian)
     
-def write_int(file, num, numbytes, endian='little'):
-    return file.write(num.to_bytes(numbytes, endian))
+def write_int(file, number, numbytes, endian='little'):
+    return file.write(number.to_bytes(numbytes, endian))
     
-def read_str(file):
+def read_float(file, endian='little'):
+    if endian == 'little':
+        return struct.unpack('<f', file.read(4))[0]
+    elif endian == 'big':
+        return struct.unpack('>f', file.read(4))[0]
+    else:
+        raise ValueError("Unexpected endian '{}'".format(endian))
+        
+def write_float(file, number, endian='little'):
+    if endian == 'little':
+        return file.write(struct.pack('<f', number))
+    elif endian == 'big':
+        return file.write(struct.pack('>f', number))
+    else:
+        raise ValueError("Unexpected endian '{}'".format(endian))    
+        
+def read_cstr(file):
     content = b''
     buff = file.read(1)
     
@@ -65,8 +82,44 @@ def read_str(file):
         
     return content.decode('utf-8')
     
-def write_str(file, string):
+def write_cstr(file, string):
     return file.write(string.encode('utf-8'))
+    
+def read_pstr(file):
+    return file.read(read_int(file, 4)).decode('utf-8')
+
+def write_pstr(file, string):
+    write_int(file, len(string), 4)
+    return file.write(string.encode('utf-8')) + 4
+    
+def read_7bstr(file):
+    length = 0
+    i = 0
+    
+    byte = read_int(file, 1)
+    while byte & 0b10000000 != 0:
+        length |= (byte & 0b01111111) << (7 * i)
+        i += 1
+        
+        byte = read_int(file, 1)
+        
+    length |= byte << (7 * i)
+    
+    return file.read(length).decode('utf-8')
+    
+def write_7bstr(file, string):
+    length = len(string)
+    i = 0
+    
+    while length > 127:
+        write_int(file, length & 0b01111111 | 0b10000000, 1) 
+        length >>= 7
+        i += 1
+        
+    write_int(file, length & 0b01111111, 1)
+    i += 1
+    
+    return file.write(string.encode('utf-8')) + i
     
 def get_size(file):
     current_position = file.tell()
@@ -78,12 +131,13 @@ def get_size(file):
     
     return size
     
-def read_package(file):
-    file.seek(0)
-    file = BytesIO(file.read())
-
+def read_package(file_path):
+    with open(file_path, 'rb') as fs:
+        file = BytesIO(fs.read())
+        
     #read header
     header = {};
+    
     file.seek(4)
     header['major version'] = read_int(file, 4)
     header['minor version'] = read_int(file, 4)
@@ -149,8 +203,8 @@ def read_package(file):
     
     if len(results) > 0:
         i = results[0]
-        clst_file = subfiles[i]
-        file_size = get_size(clst_file['content'])
+        clst = subfiles[i]
+        file_size = get_size(clst['content'])
         
         if header['index minor version'] == 2:
             entry_size = 20
@@ -159,16 +213,18 @@ def read_package(file):
             entry_size = 16
             tgi_size = 12
         
-        clst_file['content'].seek(0)
+        clst['content'].seek(0)
         for i in range(file_size // entry_size):
-            entry = clst_file['content'].read(tgi_size)
+            entry = clst['content'].read(tgi_size)
             
             if entry not in clst_entries:
                 clst_entries.add(entry)
             else:
                 raise Exception('Two entries with matching type, group, and instance found')
                 
-            clst_file['content'].seek(4, 1)
+            clst['content'].seek(4, 1)
+            
+        clst['content'].seek(0)
     
     #check if compressed
     for index_entry, subfile in zip(index_entries, subfiles):
@@ -211,116 +267,117 @@ def create_package():
     
     return {'header': header, 'subfiles': []}
     
-def write_package(file, package):
+def write_package(package, file_path):
     header = package['header']
     subfiles = package['subfiles']
     
-    file.seek(0)
-    
-    #write header
-    file.write(b'DBPF')
-    write_int(file, header['major version'], 4)
-    write_int(file, header['minor version'], 4)
-    write_int(file, header['major user version'], 4)
-    write_int(file, header['minor user version'], 4)
-    write_int(file, header['flags'], 4)
-    write_int(file, header['created date'], 4)
-    write_int(file, header['modified date'], 4)
-    write_int(file, header['index major version'], 4)
-    write_int(file, header['index entry count'], 4)
-    write_int(file, header['index location'], 4)
-    write_int(file, header['index size'], 4)
-    write_int(file, header['hole index entry count'], 4)
-    write_int(file, header['hole index location'], 4)
-    write_int(file, header['hole index size'], 4)
-    write_int(file, header['index minor version'], 4)
-    
-    file.write(header['remainder'])
-    
-    #make CLST
-    compressed_files = [subfile for subfile in subfiles if subfile['compressed']]
-    
-    if len(compressed_files) > 0:
-        clst_file = {}
-        clst_file['type'] = 0xE86B1EEF
-        clst_file['group'] = 0xE86B1EEF
-        clst_file['instance'] = 0x286B1F03
+    with open(file_path, 'wb') as file:
+        file.seek(0)
         
-        if header['index minor version'] == 2:
-            clst_file['resource'] = 0x00000000
+        #write header
+        file.write(b'DBPF')
+        write_int(file, header['major version'], 4)
+        write_int(file, header['minor version'], 4)
+        write_int(file, header['major user version'], 4)
+        write_int(file, header['minor user version'], 4)
+        write_int(file, header['flags'], 4)
+        write_int(file, header['created date'], 4)
+        write_int(file, header['modified date'], 4)
+        write_int(file, header['index major version'], 4)
+        write_int(file, header['index entry count'], 4)
+        write_int(file, header['index location'], 4)
+        write_int(file, header['index size'], 4)
+        write_int(file, header['hole index entry count'], 4)
+        write_int(file, header['hole index location'], 4)
+        write_int(file, header['hole index size'], 4)
+        write_int(file, header['index minor version'], 4)
         
-        clst_file['content'] = BytesIO()
+        file.write(header['remainder'])
         
-        for compressed_file in compressed_files:
-            write_int(clst_file['content'], compressed_file['type'], 4)
-            write_int(clst_file['content'], compressed_file['group'], 4)
-            write_int(clst_file['content'], compressed_file['instance'], 4)
+        #make CLST
+        compressed_files = [subfile for subfile in subfiles if subfile['compressed']]
+        
+        if len(compressed_files) > 0:
+            clst = {}
+            clst['type'] = 0xE86B1EEF
+            clst['group'] = 0xE86B1EEF
+            clst['instance'] = 0x286B1F03
             
             if header['index minor version'] == 2:
-                write_int(clst_file['content'], compressed_file['resource'], 4)
-                
-            #uncompressed size is written in big endian?
-            compressed_file['content'].seek(6)
-            uncompressed_size = read_int(compressed_file['content'], 3, 'big')
-            write_int(clst_file['content'], uncompressed_size, 4)
+                clst['resource'] = 0x00000000
             
-    #write subfiles
-    for subfile in subfiles:
-        if subfile['type'] != 0xE86B1EEF:
-            #get new location to put in the index later
-            subfile['location'] = file.tell()
+            clst['content'] = BytesIO()
+            
+            for compressed_file in compressed_files:
+                write_int(clst['content'], compressed_file['type'], 4)
+                write_int(clst['content'], compressed_file['group'], 4)
+                write_int(clst['content'], compressed_file['instance'], 4)
+                
+                if header['index minor version'] == 2:
+                    write_int(clst['content'], compressed_file['resource'], 4)
+                    
+                #uncompressed size is written in big endian?
+                compressed_file['content'].seek(6)
+                uncompressed_size = read_int(compressed_file['content'], 3, 'big')
+                write_int(clst['content'], uncompressed_size, 4)
+                
+        #write subfiles
+        for subfile in subfiles:
+            if subfile['type'] != 0xE86B1EEF:
+                #get new location to put in the index later
+                subfile['location'] = file.tell()
+            
+                subfile['content'].seek(0)
+                file.write(subfile['content'].read())
+            
+                #get new file size to put in the index later
+                subfile['size'] = file.tell() - subfile['location']
         
-            subfile['content'].seek(0)
-            file.write(subfile['content'].read())
+        #write CLST
+        if len(compressed_files) > 0:
+            clst['location'] = file.tell()   
         
-            #get new file size to put in the index later
-            subfile['size'] = file.tell() - subfile['location']
-    
-    #write CLST
-    if len(compressed_files) > 0:
-        clst_file['location'] = file.tell()   
-    
-        clst_file['content'].seek(0)
-        file.write(clst_file['content'].read())
+            clst['content'].seek(0)
+            file.write(clst['content'].read())
+            
+            clst['size'] = file.tell() - clst['location']
         
-        clst_file['size'] = file.tell() - clst_file['location']
-    
-    #write index
-    index_start = file.tell()
-    
-    for subfile in subfiles:
-        if subfile['type'] != 0xE86B1EEF:
-            write_int(file, subfile['type'], 4)
-            write_int(file, subfile['group'], 4)
-            write_int(file, subfile['instance'], 4)
+        #write index
+        index_start = file.tell()
+        
+        for subfile in subfiles:
+            if subfile['type'] != 0xE86B1EEF:
+                write_int(file, subfile['type'], 4)
+                write_int(file, subfile['group'], 4)
+                write_int(file, subfile['instance'], 4)
+                
+                if header['index minor version'] == 2:
+                    write_int(file, subfile['resource'], 4)    
+                    
+                write_int(file, subfile['location'], 4)
+                write_int(file, subfile['size'], 4)
+                
+        if len(compressed_files) > 0:
+            write_int(file, clst['type'], 4)
+            write_int(file, clst['group'], 4)
+            write_int(file, clst['instance'], 4)
             
             if header['index minor version'] == 2:
-                write_int(file, subfile['resource'], 4)    
+                write_int(file, clst['resource'], 4)   
                 
-            write_int(file, subfile['location'], 4)
-            write_int(file, subfile['size'], 4)
+            write_int(file, clst['location'], 4)
+            write_int(file, clst['size'], 4)
             
-    if len(compressed_files) > 0:
-        write_int(file, clst_file['type'], 4)
-        write_int(file, clst_file['group'], 4)
-        write_int(file, clst_file['instance'], 4)
+        index_end = file.tell()
         
-        if header['index minor version'] == 2:
-            write_int(file, clst_file['resource'], 4)   
-            
-        write_int(file, clst_file['location'], 4)
-        write_int(file, clst_file['size'], 4)
+        file.truncate()
         
-    index_end = file.tell()
-    
-    file.truncate()
-    
-    #update header index info, clear holes index info
-    file.seek(36)
-    write_int(file, len(subfiles), 4) #index entry count
-    write_int(file, index_start, 4) #index location
-    write_int(file, index_end - index_start, 4) #index size
-    write_int(file, 0, 12) #hole index entries
+        #update header index info, clear holes index info
+        file.seek(36)
+        write_int(file, len(subfiles), 4) #index entry count
+        write_int(file, index_start, 4) #index location
+        write_int(file, index_end - index_start, 4) #index size
+        write_int(file, 0, 12) #hole index entries
     
 def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, get_first=False):
     indices = []
@@ -375,28 +432,34 @@ def copy_subfile(subfile):
     
     return subfile_copy
     
+class CompressionError(Exception):
+    pass
+    
 #using C++ library from moreawesomethanyou   
 def compress(subfile):
-    if subfile['compressed']:
-        return copy_subfile(subfile)
+    if subfile['compressed'] or subfile['type'] == 0xE86B1EEF:
+        return subfile
         
     else:
         subfile['content'].seek(0)
         
         src = subfile['content'].read()
-        src_len = get_size(subfile['content'])
+        src_len = len(src)
         dst = ctypes.create_string_buffer(src_len)
         
         dst_len = clib.try_compress(src, src_len, dst)
         
         if dst_len > 0:
-            new_subfile = copy_subfile(subfile)
-            new_subfile['content'] = BytesIO(dst.raw[:dst_len])
-            new_subfile['compressed'] = True
-            return new_subfile
+            subfile['content'].seek(0)
+            subfile['content'].write(dst.raw[:dst_len])
+            subfile['content'].truncate()
+            subfile['content'].seek(0)
+            subfile['compressed'] = True
+            
+            return subfile
             
         else:
-            raise Exception('Could not compress the file')
+            raise CompressionError('Could not compress the file')
             
 #using C++ library from moreawesomethanyou 
 def decompress(subfile):
@@ -413,16 +476,19 @@ def decompress(subfile):
         success = clib.decompress(src, compressed_size, dst, uncompressed_size, False)
         
         if success:
-            new_subfile = copy_subfile(subfile)
-            new_subfile['content'] = BytesIO(dst.raw)
-            new_subfile['compressed'] = False
-            return new_subfile
+            subfile['content'].seek(0)
+            subfile['content'].write(dst.raw)
+            subfile['content'].truncate()
+            subfile['content'].seek(0)
+            subfile['compressed'] = False
+            
+            return subfile
             
         else:
-            raise Exception('Could not decompress the file')
+            raise CompressionError('Could not decompress the file')
             
     else:
-        return copy_subfile(subfile)
+        return subfile
         
 def print_TGI(subfile):
     if 'resource' in subfile:

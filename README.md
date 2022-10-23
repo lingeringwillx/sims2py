@@ -23,23 +23,47 @@ To compile the library, run the compile.bat file.
 
 Reads *numbytes* from *file* and converts it into an integer. The endian can be specified with the *endian* argument.
 
-**write_int(file, num, numbytes, endian='little')**
+**write_int(file, number, numbytes, endian='little')**
 
-Converts *num* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*.
+Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*.
 
-**read_str(file)**
+**read_float(file, endian='little')**
+
+Reads the next 4 bytes from *file* and converts them into a float. The endian can be specified with the *endian* argument.
+
+**write_float(file, number, endian='little')**
+
+Converts *number* into a bytes object with endian *endian*, then writes it into *file*.
+
+**read_cstr(file)**
 
 Reads from *file* until it reaches a null termination and returns a string.
 
-**write_str(file, string)**
+**write_cstr(file, string)**
 
-Writes *string* into *file*
+Writes *string* into *file*. Does not add a null termination at the end.
+
+**read_pstr(file)**
+
+Reads a Pascal string from *file* and returns it.
+
+**write_pstr(file, string)**
+
+Writes *string* to *file* as a Pascal string.
+
+**read_7bstr(file)**
+
+Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from *file* and returns it as a string object.
+
+**write_7bstr(file, string)**
+
+Writes *string* into *file* in the 7-bit string format.
 
 **get_size(file)**
 
 Returns the size/length of *file*
 
-**read_package(file)**
+**read_package(file_path)**
 
 Reads a package file and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
 
@@ -47,17 +71,17 @@ Reads a package file and returns a dictionary containing its data. For informati
 
 Creates a dictionary containing the data necessary to make an empty package file.
 
-**write_package(file, package)**
+**write_package(package, file_path)**
 
-Converts the dictionary *package* into a package file and writes it to *file*.
+Converts the dictionary *package* into a package file and writes it to a file with the provided *file_path*.
 
 **search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, get_first=False)**
 
-searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
+Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
 
 **copy_package(package)**
 
-creates a copy of *package* and returns it.
+Creates a copy of *package* and returns it.
 
 **copy_header(header)**
 
@@ -69,23 +93,23 @@ creates a copy of *subfile* and returns it.
 
 **compress(subfile)**
 
-returns a copy of *subfile* with it's content compressed. If the content of *subfile* is already compressed, then it returns an identical copy. 
+Compresses the content of *subfile*. If the content of *subfile* is already compressed, then nothing happens. Returns a reference to subfile.
 
 **decompress(subfile)**
 
-returns a copy of *subfile* with it's content decompressed. If the content of *subfile* is already decompressed, then it returns an identical copy. 
+Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Returns a reference to subfile.
 
 **print_TGI(subfile)**
 
-displays the type, group, and instance of a *subfile*.
+Displays the type, group, and instance of a *subfile*.
 
 **build_index(subfiles)**
 
-returns an index that enables faster searching of *subfiles* using the *index_search* function. The returned index does NOT get updated when making changes to *subfiles* after the function is called.
+Returns an index that enables faster searching of *subfiles* using the *index_search* function. The returned index does NOT get updated when making changes to *subfiles* after the function is called.
 
 **index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1)**
 
-similar to the *search* function, but uses the index created by *build_index* for faster searching.
+Similar to the *search* function, but uses the index created by *build_index* for faster searching.
 
 ### Dictionaries
 Structure of dictionaries created by this script:
