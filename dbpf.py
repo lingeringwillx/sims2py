@@ -53,11 +53,11 @@ clib.decompress.restype = ctypes.c_bool
 class RepeatKeyError(Exception): pass
 class CompressionError(Exception): pass
 
-def read_int(file, numbytes, endian='little'):
-    return int.from_bytes(file.read(numbytes), endian)
+def read_int(file, numbytes, endian='little', signed=False):
+    return int.from_bytes(file.read(numbytes), endian, signed=signed)
     
-def write_int(file, number, numbytes, endian='little'):
-    return file.write(number.to_bytes(numbytes, endian))
+def write_int(file, number, numbytes, endian='little', signed=False):
+    return file.write(number.to_bytes(numbytes, endian, signed=signed))
     
 def read_float(file, endian='little'):
     if endian == 'little':
@@ -75,7 +75,7 @@ def write_float(file, number, endian='little'):
     else:
         raise ValueError("Unexpected endian '{}'".format(endian))    
         
-def read_cstr(file):
+def read_str(file):
     content = b''
     buff = file.read(1)
     
@@ -85,7 +85,7 @@ def read_cstr(file):
         
     return content.decode('utf-8')
     
-def write_cstr(file, string):
+def write_str(file, string):
     return file.write(string.encode('utf-8'))
     
 def read_pstr(file):

@@ -19,13 +19,13 @@ If you want to compile the C library yourself, you will need the following:
 To compile the library, run the compile.bat file.
 
 ### Functions
-**read_int(file, numbytes, endian='little')**
+**read_int(file, numbytes, endian='little', signed=False)**
 
-Reads *numbytes* from *file* and converts it into an integer. The endian can be specified with the *endian* argument.
+Reads *numbytes* from *file* and converts it into an integer. The endian can be specified with the *endian* argument. The *signed* argument can be set to *True* for signed integers.
 
-**write_int(file, number, numbytes, endian='little')**
+**write_int(file, number, numbytes, endian='little', signed=False)**
 
-Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*.
+Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*. The *signed* argument can be set to *True* for signed integers. 
 
 **read_float(file, endian='little')**
 
@@ -35,11 +35,11 @@ Reads the next 4 bytes from *file* and converts them into a float. The endian ca
 
 Converts *number* into a bytes object with endian *endian*, then writes it into *file*.
 
-**read_cstr(file)**
+**read_str(file)**
 
 Reads from *file* until it reaches a null termination and returns a string.
 
-**write_cstr(file, string)**
+**write_str(file, string)**
 
 Writes *string* into *file*. Does not add a null termination at the end.
 
