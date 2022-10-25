@@ -19,21 +19,13 @@ If you want to compile the C library yourself, you will need the following:
 To compile the library, run the compile.bat file.
 
 ### Functions
-**read_uint(file, numbytes, endian='little')**
+**read_int(file, numbytes, endian='little', signed=False)**
 
-Reads *numbytes* from *file* and converts it into an unsigned integer. The endian can be specified with the *endian* argument.
+Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument can be used to specify whether the integer is signed or not.
 
-**write_uint(file, number, numbytes, endian='little')**
+**write_int(file, number, numbytes, endian='little', signed=False)**
 
-Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*.
-
-**read_int(file, numbytes, endian='little')**
-
-Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument.
-
-**write_int(file, number, numbytes, endian='little')**
-
-Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*.
+Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*. The *signed* argument can be used to specify whether the integer is signed or not.
 
 **read_float(file, endian='little')**
 
@@ -42,6 +34,14 @@ Reads the next 4 bytes from *file* and converts them into a float. The endian ca
 **write_float(file, number, endian='little')**
 
 Converts *number* into a bytes object with endian *endian*, then writes it into *file*.
+
+**read_flags(file)**
+
+Reads the next byte from *file* and converts into a list of booleans, with each boolean indicating whether the flag is set or not.
+
+**write_flags(file, flags)**
+
+Takes a list of booleans and converts it into it's flags representation and writes it to *file*.
 
 **read_str(file)**
 
@@ -67,13 +67,9 @@ Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from *fil
 
 Writes *string* into *file* in the 7-bit string format.
 
-**get_size(file)**
-
-Returns the size/length of *file*
-
 **read_package(file_path)**
 
-Reads a package file and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
+Reads a package file from the provided *file_path* and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
 
 **create_package()**
 
@@ -98,6 +94,10 @@ creates a copy of *header* and returns it.
 **copy_subfile(subfile)**
 
 creates a copy of *subfile* and returns it.
+
+**get_size(file)**
+
+Returns the size/length of *file*
 
 **compress(subfile)**
 
