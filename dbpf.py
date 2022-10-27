@@ -306,8 +306,12 @@ def write_package(package, file_path):
         file.write(header['remainder'])
         
         #make CLST
+        results = search(subfiles, 0xE86B1EEF, get_first=True)
         compressed_files = [subfile for subfile in subfiles if subfile['compressed']]
         
+        if len(results) > 0:
+            subfiles.pop(results[0])
+            
         if len(compressed_files) > 0:
             clst = {}
             clst['type'] = 0xE86B1EEF
@@ -316,7 +320,7 @@ def write_package(package, file_path):
             
             if header['index minor version'] == 2:
                 clst['resource'] = 0x00000000
-            
+                
             clst['content'] = BytesIO()
             
             for compressed_file in compressed_files:
@@ -332,52 +336,32 @@ def write_package(package, file_path):
                 uncompressed_size = read_int(compressed_file['content'], 3, 'big')
                 write_int(clst['content'], uncompressed_size, 4)
                 
+            subfiles.append(clst)
+            
         #write subfiles
         for subfile in subfiles:
-            if subfile['type'] != 0xE86B1EEF:
-                #get new location to put in the index later
-                subfile['location'] = file.tell()
-            
-                subfile['content'].seek(0)
-                file.write(subfile['content'].read())
-            
-                #get new file size to put in the index later
-                subfile['size'] = file.tell() - subfile['location']
+            #get new location to put in the index later
+            subfile['location'] = file.tell()
         
-        #write CLST
-        if len(compressed_files) > 0:
-            clst['location'] = file.tell()   
+            subfile['content'].seek(0)
+            file.write(subfile['content'].read())
         
-            clst['content'].seek(0)
-            file.write(clst['content'].read())
+            #get new file size to put in the index later
+            subfile['size'] = file.tell() - subfile['location']
             
-            clst['size'] = file.tell() - clst['location']
-        
         #write index
         index_start = file.tell()
         
         for subfile in subfiles:
-            if subfile['type'] != 0xE86B1EEF:
-                write_int(file, subfile['type'], 4)
-                write_int(file, subfile['group'], 4)
-                write_int(file, subfile['instance'], 4)
-                
-                if header['index minor version'] == 2:
-                    write_int(file, subfile['resource'], 4)    
-                    
-                write_int(file, subfile['location'], 4)
-                write_int(file, subfile['size'], 4)
-                
-        if len(compressed_files) > 0:
-            write_int(file, clst['type'], 4)
-            write_int(file, clst['group'], 4)
-            write_int(file, clst['instance'], 4)
+            write_int(file, subfile['type'], 4)
+            write_int(file, subfile['group'], 4)
+            write_int(file, subfile['instance'], 4)
             
             if header['index minor version'] == 2:
-                write_int(file, clst['resource'], 4)   
+                write_int(file, subfile['resource'], 4)    
                 
-            write_int(file, clst['location'], 4)
-            write_int(file, clst['size'], 4)
+            write_int(file, subfile['location'], 4)
+            write_int(file, subfile['size'], 4)
             
         index_end = file.tell()
         
