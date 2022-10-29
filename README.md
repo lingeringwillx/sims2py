@@ -21,11 +21,11 @@ To compile the library, run the compile.bat file.
 ### Functions
 **read_int(file, numbytes, endian='little', signed=False)**
 
-Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument can be used to specify whether the integer is signed or not.
+Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
 
 **write_int(file, number, numbytes, endian='little', signed=False)**
 
-Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*. The *signed* argument can be used to specify whether the integer is signed or not.
+Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*. The *signed* argument is used to specify whether the integer is signed or not.
 
 **read_float(file, endian='little')**
 
@@ -37,11 +37,11 @@ Converts *number* into a bytes object with endian *endian*, then writes it into 
 
 **read_flags(file)**
 
-Reads the next byte from *file* and converts into a list of booleans, with each boolean indicating whether the flag is set or not.
+Reads the next byte from *file* and converts into a list of booleans, with each boolean indicating whether the corresponding flag is set or not.
 
 **write_flags(file, flags)**
 
-Takes a list of booleans and converts it into it's flags representation and writes it to *file*.
+Takes a list of booleans and converts it into it's flag representation and writes it to *file*.
 
 **read_str(file)**
 
@@ -101,11 +101,11 @@ Returns the size/length of *file*
 
 **compress(subfile)**
 
-Compresses the content of *subfile*. If the content of *subfile* is already compressed, then nothing happens. Returns a reference to subfile. Raises a *CompressionError* if compression fails.
+Compresses the content of *subfile*. If the content of *subfile* is already compressed, then nothing happens. Raises a *CompressionError* if compression fails. Returns a reference to *subfile*.
 
 **decompress(subfile)**
 
-Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Returns a reference to subfile. Raises a *CompressionError* if decompression fails.
+Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Raises a *CompressionError* if decompression fails. Returns a reference to *subfile*.
 
 **print_TGI(subfile)**
 

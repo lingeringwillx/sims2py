@@ -282,6 +282,13 @@ def write_package(package, file_path):
     header = package['header']
     subfiles = package['subfiles']
     
+    #use index minor version 2?
+    if header['index minor version'] != 2:
+        for subfile in subfiles:
+            if 'resource' in subfile:
+                header['index minor version'] = 2
+                break
+                
     with open(file_path, 'wb') as file:
         file.seek(0)
         
@@ -329,8 +336,11 @@ def write_package(package, file_path):
                 write_int(clst['content'], compressed_file['instance'], 4)
                 
                 if header['index minor version'] == 2:
-                    write_int(clst['content'], compressed_file['resource'], 4)
-                    
+                    if 'resource' in compressed_file:
+                        write_int(clst['content'], compressed_file['resource'], 4)
+                    else:
+                        write_int(clst['content'], 0, 4)
+                        
                 #uncompressed size is written in big endian?
                 compressed_file['content'].seek(6)
                 uncompressed_size = read_int(compressed_file['content'], 3, 'big')
@@ -358,8 +368,11 @@ def write_package(package, file_path):
             write_int(file, subfile['instance'], 4)
             
             if header['index minor version'] == 2:
-                write_int(file, subfile['resource'], 4)    
-                
+                if 'resource' in subfile:
+                    write_int(file, subfile['resource'], 4)
+                else:
+                    write_int(file, 0, 4)
+                    
             write_int(file, subfile['location'], 4)
             write_int(file, subfile['size'], 4)
             
