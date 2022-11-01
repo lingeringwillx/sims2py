@@ -35,29 +35,21 @@ Reads the next 4 bytes from *file* and converts them into a float. The endian ca
 
 Converts *number* into a bytes object with endian *endian*, then writes it into *file*.
 
-**read_flags(file)**
+**read_str(file, length=0)**
 
-Reads the next byte from *file* and converts into a list of booleans, with each boolean indicating whether the corresponding flag is set or not.
+Reads a string from *file*. If the length is larger than zero, then it reads *length* bytes from *file* and returns the string. Otherwise, it keeps reading until it reaches a null termination and returns the string.
 
-**write_flags(file, flags)**
+**write_str(file, string, null_term=False)**
 
-Takes a list of booleans and converts it into it's flag representation and writes it to *file*.
+Writes *string* into *file*. if *null_term* is set to True, then a null termination is also written to the file.
 
-**read_str(file)**
+**read_pstr(file, numbytes)**
 
-Reads from *file* until it reaches a null termination and returns a string.
+Reads a Pascal string from *file* and returns it. *numbytes* indicates how many bytes are used for the string's length in *file*.
 
-**write_str(file, string)**
+**write_pstr(file, string, numbytes)**
 
-Writes *string* into *file*. Does not add a null termination at the end.
-
-**read_pstr(file)**
-
-Reads a Pascal string from *file* and returns it.
-
-**write_pstr(file, string)**
-
-Writes *string* to *file* as a Pascal string.
+Writes *string* to *file* as a Pascal string. *numbytes* indicates how many bytes are to be used for the string's length in *file*.
 
 **read_7bstr(file)**
 

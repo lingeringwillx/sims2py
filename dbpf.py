@@ -75,42 +75,33 @@ def write_float(file, number, endian='little'):
     else:
         raise ValueError("Unexpected endian '{}'".format(endian))    
         
-def read_flags(file):
-    flags = []
-    buffer = read_int(file, 1)
-    
-    for i in range(8):
-        flags.append(buffer & 1 == 1)
-        buffer >>= 1
-        
-    return flags
-    
-def write_flags(file, flags):
-    buffer = 0
-    for i, flag in enumerate(flags):
-        if flag:
-            buffer |= 1 << i
-            
-    return write_int(file, buffer, 1)
-    
-def read_str(file):
-    content = b''
-    buff = file.read(1)
-    
-    while buff != b'\x00':
-        content += buff
+def read_str(file, length=0):
+    if length > 0:
+        return file.read(length).decode('utf-8')
+    else:
+        content = b''
         buff = file.read(1)
         
-    return content.decode('utf-8')
+        while buff != b'\x00':
+            content += buff
+            buff = file.read(1)
+            
+        return content.decode('utf-8')
+        
+def write_str(file, string, null_term=False):
+    length = file.write(string.encode('utf-8'))
     
-def write_str(file, string):
-    return file.write(string.encode('utf-8'))
-    
-def read_pstr(file):
-    return file.read(read_int(file, 4)).decode('utf-8')
+    if null_term:
+        file.write(b'\x00')
+        return length + 1
+    else:
+        return length
+        
+def read_pstr(file, numbytes):
+    return file.read(read_int(file, numbytes)).decode('utf-8')
 
-def write_pstr(file, string):
-    write_int(file, len(string), 4)
+def write_pstr(file, string, numbytes):
+    write_int(file, len(string), numbytes)
     return file.write(string.encode('utf-8')) + 4
     
 def read_7bstr(file):
