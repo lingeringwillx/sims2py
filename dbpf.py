@@ -1,7 +1,6 @@
 from io import BytesIO
 import ctypes
 import os
-import string
 import struct
 import sys
 
