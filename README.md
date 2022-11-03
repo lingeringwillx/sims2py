@@ -191,19 +191,19 @@ CPF dictionaries created by the *unpack_cpf* function contain the following:
 
 **'entries'** (list of dicts): Each entry contains the following:
 
-	**'name'** (str): The name of the entry.
+- **'name'** (str): The name of the entry.
 
-	**'type'** (str): The name of the entry's type. Can be one of the following:
+- **'type'** (str): The name of the entry's type. Can be one of the following:
 
-	| Type | Name |
-	| --- | --- |
-	| uint | Unsigned Integer |
-	| str | String |
-	| float | Float |
-	| bool | Boolean |
-	| int | Signed Integer |
+- | Type | Name |
+| --- | --- |
+| uint | Unsigned Integer |
+| str | String |
+| float | Float |
+| bool | Boolean |
+| int | Signed Integer |
 
-	**'data'** (specified by *'type'*): the actual data in the entry.
+- **'data'** (specified by *'type'*): the actual data in the entry.
 
 ## Resources
 General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
