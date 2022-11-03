@@ -117,7 +117,7 @@ Decompresses *subfile* up to *size*. If *size* is not specified, then the whole 
 
 **unpack_cpf(file)**
 
-Converts the files that use the [CPF](#CPF) file format into a dictionary.
+Converts the files that use the [CPF](#cpf-dict) file format into a dictionary.
 
 **pack_cpf(content)**
 
@@ -133,111 +133,69 @@ Dictionary containing *header* and *subfiles*
 
 #### header (dict)
 
-**'major version':** int
+**'major version'** (int): Equal to 1.
 
-Equal to 1.
+**'minor version'** (int): Equal to 1.
 
-**'minor version':** int
+**'major user version'** (int): Equal to 0.
 
-Equal to 1.
+**'minor user version'** (int): Equal to 0.
 
-**'major user version'**: int
+**'flags'** (int): Not known.
 
-Equal to 0.
+**'created date'** (int)
 
-**'minor user version':** int
+**'modified date'** (int)
 
-Equal to 0.
+**'index major version'** (int): Equal to 7.
 
-**'flags':** int
+**'index entry count'** (int): The number of entries in the file.
 
-Not known.
+**'index location'** (int): The location of the file index.
 
-**'created date':** int
+**'index size'** (int): The length of the index.
 
-**'modified date':** int
+**'hole index entry count'** (int): The number of holes in the file.
 
-**'index major version':** int
+**'hole index location'** (int): The location of the holes index in the file.
 
-Equal to 7.
+**'hole index size'** (int): The length of the holes index.
 
-**'index entry count':** int
+**'index minor version'** (int): The index version, between 0 and 2.
 
-The number of entries in the file.
-
-**'index location':** int
-
-The location of the file index.
-
-**'index size':** int
-
-The length of the index.
-
-**'hole index entry count':** int
-
-The number of holes in the file.
-
-**'hole index location':** int
-
-The location of the holes index in the file.
-
-**'hole index size':** int
-
-The length of the holes index.
-
-**'index minor version':** int
-
-The index version, between 0 and 2.
-
-**'remainder':** bytes
-
-What remains of the header.
+**'remainder'** (bytes): What remains of the header.
 
 -----
 
 #### subfiles (list of dicts)
 Usually called *entries*. Each element in this list contains the following:
 
-**'type':** int
+**'type'** (int): Entry type.
 
-Entry type.
+**'group'** (int): Entry group.
 
-**'group':** int
+**'instance'** (int): Entry instance.
 
-Entry group.
+**'resource'** (int): Entry resource, only exists if the *index minor version* of the *header* is 2.
 
-**'instance':** int
+**'content'** (BytesIO): File-like object stored in memory containing the entry itself.
 
-Entry instance.
-
-**'resource':** int
-
-Entry resource, only exists if the *index minor version* of the *header* is 2.
-
-**'content':** BytesIO
-
-File-like object stored in memory containing the entry itself.
-
-**'compressed':** bool
-
-Indicates whether the entry is compressed or not.
+**'compressed'** (bool): Indicates whether the entry is compressed or not.
 
 -----
 
 #### CPF (dict)
 CPF dictionaries contain the following:
 
-**'version':** int
+**'version'** (int)
 
-**entries':** list of dicts
+**'entries'** (list of dicts):
 
-Each entry contains:
+Each entry contains the following:
 
-**'name':** str
+**'name'** (str): The name of the entry.
 
-The name of the entry.
-
-**'type':** str
+**'type'** (str):
 
 The name of the entry's type. Can be one of the following:
 
@@ -249,9 +207,7 @@ The name of the entry's type. Can be one of the following:
 | bool | Boolean |
 | int | Signed Integer |
 
-**'data':** specified by *'type'*
-
-the actual data in the entry.
+**'data'** (specified by *'type'*): the actual data in the entry.
 
 ## Resources
 General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
