@@ -1,238 +1,169 @@
-## Purpose
-1- To make it easier to access and read the game's data.
-
-2- To enable quick script editing of the game's files.
-
-## Documentation
-### Getting Started
-**Requirements:** Requires Windows and Python 3.2 or higher.
-
-**Installation:** Download the build, then make a python file in the same directory as the library and write `import dbpf` to import the library.
-
-**Compilation:**
-If you want to compile the C library yourself, you will need *Mingw-w64* to be installed in your system.
-
-To compile the library, run the compile.bat file.
-
-### Functions
-**read_int(file, numbytes, endian='little', signed=False)**
-
-Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
-
-**write_int(file, number, numbytes, endian='little', signed=False)**
-
-Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*. The *signed* argument is used to specify whether the integer is signed or not.
-
-**read_float(file, endian='little')**
-
-Reads the next 4 bytes from *file* and converts them into a float. The endian can be specified with the *endian* argument.
-
-**write_float(file, number, endian='little')**
-
-Converts *number* into a bytes object with endian *endian*, then writes it into *file*.
-
-**read_str(file, length=0)**
-
-Reads a string from *file*. If the length is larger than zero, then it reads *length* bytes from *file* and returns the string. Otherwise, it keeps reading until it reaches a null termination and returns the string.
-
-**write_str(file, string, null_term=False)**
-
-Writes *string* into *file*. if *null_term* is set to True, then a null termination is also written to the file.
-
-**read_pstr(file, numbytes)**
-
-Reads a Pascal string from *file* and returns it. *numbytes* indicates how many bytes are used for the string's length in *file*.
-
-**write_pstr(file, string, numbytes)**
-
-Writes *string* to *file* as a Pascal string. *numbytes* indicates how many bytes are to be used for the string's length in *file*.
-
-**read_7bstr(file)**
-
-Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from *file* and returns it as a string object.
-
-**write_7bstr(file, string)**
-
-Writes *string* into *file* in the 7-bit string format.
-
-**read_package(file_path)**
-
-Reads a package file from the provided *file_path* and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
-
-**create_package()**
-
-Creates a dictionary containing the data necessary to make an empty package file.
-
-**write_package(package, file_path)**
-
-Converts the dictionary *package* into a package file and writes it to a file with the provided *file_path*.
-
-**search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
-
-Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
-
-**copy_package(package)**
-
-Creates a copy of *package* and returns it.
-
-**copy_header(header)**
-
-creates a copy of *header* and returns it.
-
-**copy_subfile(subfile)**
-
-creates a copy of *subfile* and returns it.
-
-**get_size(file)**
-
-Returns the size/length of *file*
-
-**compress(subfile)**
-
-Compresses the content of *subfile*. If the content of *subfile* is already compressed, then nothing happens. Raises a *CompressionError* if compression fails. Returns a reference to *subfile*.
-
-**decompress(subfile)**
-
-Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Raises a *CompressionError* if decompression fails. Returns a reference to *subfile*.
-
-**print_TGI(subfile)**
-
-Displays the type, group, and instance of a *subfile*.
-
-**build_index(subfiles)**
-
-Returns an index that enables faster searching of *subfiles* using the *index_search* function. The returned index does NOT get updated when making changes to *subfiles* after the function is called.
-
-**index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='')**
-
-Similar to the *search* function, but uses the index created by *build_index* for faster searching.
-
-**read_file_name(subfile)**
-
-Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
-
-**partial_decompress(subfile, size=0)**
-
-Decompresses *subfile* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a bytes object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *subfile*.
-
-**unpack_cpf(file)**
-Converts the files that use the CPF file format into a dictionary.
-
-**pack_cpf(content)**
-Converts dictionaries created by the *unpack_cpf* function into a BytesIO file. Returns the file
-
-### Dictionaries
-Structure of dictionaries created by this script:
-
-#### package (dict)
-Dictionary containing *header* and *subfiles*
-
------
-
-#### header (dict)
-
-**'major version':** int
-
-Equal to 1.
-
-**'minor version':** int
-
-Equal to 1.
-
-**'major user version'**: int
-
-Equal to 0.
-
-**'minor user version':** int
-
-Equal to 0.
-
-**'flags':** int
-
-Not known.
-
-**'created date':** int
-
-**'modified date':** int
-
-**'index major version':** int
-
-Equal to 7.
-
-**'index entry count':** int
-
-The number of entries in the file.
-
-**'index location':** int
-
-The location of the file index.
-
-**'index size':** int
-
-The length of the index.
-
-**'hole index entry count':** int
-
-The number of holes in the file.
-
-**'hole index location':** int
-
-The location of the holes index in the file.
-
-**'hole index size':** int
-
-The length of the holes index.
-
-**'index minor version':** int
-
-The index version, between 0 and 2.
-
-**'remainder':** bytes
-
-What remains of the header.
-
------
-
-#### subfiles (list of dicts)
-Usually called *entries*. Each element in this list contains the following:
-
-**'type':** int
-
-Entry type.
-
-**'group':** int
-
-Entry group.
-
-**'instance':** int
-
-Entry instance.
-
-**'resource':** int
-
-Entry resource, only exists if the *index minor version* of the *header* is 2.
-
-**'content':** BytesIO
-
-File-like object stored in memory containing the entry itself.
-
-**'compressed':** bool
-
-Indicates whether the entry is compressed or not.
-
-## Resources
-General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
-
-Useful image showing the game's file format: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
-
-Information on the various file types found in the package file's entries (A little dated): https://modthesims.info/wiki.php?title=List_of_Sims_2_Formats_by_Name
-
-Information on the compression used by the game's files: https://modthesims.info/wiki.php?title=DBPF_Compression
-
-Original code for the library I used for the compression and decompression code: www.moreawesomethanyou.com/smf/index.php/topic,8279.0.html
-
-Notepad++ with the HEX-Editor plugin was useful for viewing the game's files: https://notepad-plus-plus.org/
-
-SimPE also has a hex viewer, but it only shows you uncompressed entries: https://modthesims.info/showthread.php?t=630456
-
-I used this tool to compare my edited files to the original files: https://github.com/Shelwien/cmp/
+## File Formats Support
+List of file formats in the game:
+
+| Name | Hex Code | Description | Supported? |
+| --- | --- | --- | --- |
+| 2ARY | 6B943B43 | 2D Array | ❌ |
+| 3ARY | 2A51171B | 3D Array | ❌ |
+| 3IDR | AC506764 | 3D ID Referencing File | ✔️ |
+| 5DS | AC06A676 | Lighting (Draw State Light) | ❌ |
+| 5EL | 6A97042F | Lighting (Environment Cube Light) | ❌ |
+| 5LF | AC06A66F | Lighting (Linear Fog Light) | ❌ |
+| 5SC | 25232B11 | Scene Node | ❌ |
+| AGED | AC598EAC | Age Data | ❌ |
+| ANIM | FB00791E | Animation Resource | ❌ |
+| AUDT | EBFEE345 | Audio Test | ❌ |
+| BCON | 42434F4E | Behaviour Constant | ✔️ |
+| BHAV | 42484156 | Behaviour Function | ✔️ |
+| BINX | 0C560F39 | Binary Index | ✔️ |
+| BMP | 424D505F | Bitmaps | ❌ |
+| BMP | 856DDBAC | Bitmaps | ❌ |
+| BNFO | 104F6A6E | Business Info |
+| CATS | 43415453 | Catalog String | ✔️ |
+| CIGE | 43494745 | Image Link | ❌ |
+| CINE | 4D51F042 | Cinematic Scene | ❌ |
+| CREG | CDB467B8 | Content Registry | ❌ |
+| CRES | E519C933 | Resource Node | ❌ |
+| CTSS | 43545353 | Catalog Description | ✔️ |
+| COLL | 6C4F359D | Collection | ✔️ |
+| DGRP | 44475250 | Drawgroup | ❌ |
+| DIR | E86B1EEF | Directory of Compressed Files | ❌ |
+| FACE | 46414345 | Face Properties | ❌ |
+| FAMh | 46414D68 | Family Data | ❌ |
+| FAMI | 46414D49 | Family Information | ✔️ |
+| FAMt | 8C870743 | Family Ties | ✔️ |
+| FCNS | 46434E53 | Global Tuning Values | ❌ |
+| FPL | AB4BA572 | Fence Post Layer | ❌ |
+| FWAV | 46574156 | Audio Reference | ❌ |
+| FX | EA5118B0 | Effects Resource Tree | ❌ |
+| GLOB | 474C4F42 | Glabal Data | ✔️ |
+| GLUA | 9012468A | Global Object Lua | ❌ |
+| GMDC | AC4F8687 | Geometric Data Container | ❌ |
+| GMND | 7BA3838C | Geometric Node | ❌ |
+| GROP | 54535053 | Groups Cache | ❌ |
+| GZPS | EBCF3E27 | Property Set | ❌ |
+| HLS | 7B1ACFCD | Hitlist | ❌ |
+| HOUS | 484F5553 | House Data | ❌ |
+| IDNO | AC8A7A2E | ID Number | ✔️ |
+| INIT | 4F6FD33D | Inventory Item | ❌ |
+| JFIF | 4D533EDD | JPEG/JFIF Image | ❌ |
+| JFIF | 856DDBAC | JPEG/JFIF Image | ❌ |
+| JFIF | 8C3CE95A | JPEG/JFIF Image | ❌ |
+| JFIF | 0C7E9A76 | JPEG/JFIF Image | ❌ |
+| KEYD | A2E3D533 | Accelerator Key Definitions | ❌ |
+| LDEF | 0BF999E7 | Lot Description | ❌ |
+| LGHT | C9C81B9B | Lighting (Ambient Light) | ❌ |
+| LGHT | C9C81BA3 | Lighting (Directional Light) | ❌ |
+| LGHT | C9C81BA9 | Lighting (Point Light) | ❌ |
+| LGHT | C9C81BAD | Lighting (Spot Light) | ❌ |
+| LIFO | ED534136 | Large Image File | ❌ |
+| LOTD | 6C589723 | Lot Definition | ❌ |
+| LOTG | 6B943B43 | Lot Terrain Geometry | ❌ |
+| LTTX | 4B58975B | Lot Texture | ❌ |
+| LxNR | CCCEF852 | Facial Structure | ❌ |
+| MATSHAD | CD7FE87A | Maxis Material Shader | ❌ |
+| MMAT | 4C697E5A | Material Override | ❌ |
+| MOBJT | 6F626A74 | Main Lot Objects | ❌ |
+| MP3 | 2026960B | MP3 Audio | ❌ |
+| NGBH | 4E474248 | Neighborhood Data | ❌ |
+| NHTG | ABCB5DA4 | Neighbourhood Terrain Geometry | ❌ |
+| NHTR | ABD0DC63 | Neighborhood Terrain | ❌ |
+| NHVW | EC44BDDC | Neighborhood View | ❌ |
+| NID | AC8A7A2E | Neighbourhood ID | ❌ |
+| NLO | ADEE8D84 | Light Override | ❌ |
+| NMAP | 4E6D6150 | Name Map | ❌ |
+| NREF | 4E524546 | Name Reference | ✔️ |
+| OBJD | 4F424A44 | Object Data | ✔️ |
+| OBJf | 4F424A66 | Object Functions | ✔️ |
+| ObJM | 4F626A4D | Object Metadata | ❌ |
+| OBJT | FA1C39F7 | Singular Lot Object | ❌ |
+| OBMI | 4F626A4D | Object Metadata Imposter | ❌ |
+| OLUA | 9012468B | Object Lua | ❌ |
+| PALT | 50414C54 | Image Color Palette | ❌ |
+| PBOP | D1954460 | Pet Body Options | ❌ |
+| PDAT | AACE2EFB | Person Data (Formerly SDSC/SINF/SDAT) | ❌ |
+| PERS | 50455253 | Person Status | ❌ |
+| PMAP | 8CC0A14B | Predictive Map | ❌ |
+| PNG | 856DDBAC | PNG Image | ❌ |
+| POOL | 0C900FDB | Pool Surface | ❌ |
+| POPS | 2C310F46 | Popups | ❌ |
+| Popups | 2C310F46 | Unknown | ❌ |
+| POSI | 504F5349 | Edith Positional Information (deprecated) | ❌ |
+| PTBP | 50544250 | Package Text | ❌ |
+| PUNK | 7181C501 | Pet Unknown | ❌ |
+| ROOF | AB9406AA | Roof | ❌ |
+| SCID | CC2A6A34 | Sim Creation Index | ❌ |
+| SCOR | 3053CF74 | Sim Scores | ❌ |
+| SDNA | EBFEE33F | Sim DNA | ❌ |
+| SFX | 8DB5E4C2 | Sound Effects | ❌ |
+| SHPE | FC6EB1F7 | Shape | ❌ |
+| SIMI | 53494D49 | Sim Information | ❌ |
+| SLOT | 534C4F54 | Object Slot | ❌ |
+| SMAP | CAC4FC40 | String Map | ❌ |
+| SPR2 | 53505232 | Sprites | ❌ |
+| SPX1 | 2026960B | SPX Speech | ❌ |
+| SREL | CC364C2A | Sim Relations | ❌ |
+| STR# | 53545223 | Text String | ✔️ |
+| STXR | ACE46235 | Surface Texture | ❌ |
+| SWAF | CD95548E | Sim Wants and Fears | ❌ |
+| TATT | 54415454 | Tree Attributes | ❌ |
+| TGA | 856DDBAC | Targa Image | ❌ |
+| THUB | 2C30E040 | Fence Arch Thumbnail | ❌ |
+| THUB | 2C43CBD4 | Foundation or Pool Thumbnail | ❌ |
+| THUB | 2C488BCA | Dormer Thumbnail | ❌ |
+| THUB | 8C31125E | Wall Thumbnail | ❌ |
+| THUB | 8C311262 | Floor Thumbnail | ❌ |
+| THUB | AC2950C1 | Thumbnail | ❌ |
+| THUB | CC30CDF8 | Concrete Thumbnail | ❌ |
+| THUB | CC44B5EC | Modular Stair Thumbnail | ❌ |
+| THUB | CC489E46 | Roof Thumbnail | ❌ |
+| THUB | CC48C51F | Chimney Thumbnail | ❌ |
+| THUB | EC3126C4 | Terrain Thumbnail | ❌ |
+| TMAP | 4B58975B | Lot or Terrain Texture Map | ❌ |
+| TPRP | 54505250 | Edith SimAntics Behavior Labels | ✔️ |
+| TRCN | 5452434E | Behavior Constant Labels | ✔️ |
+| TREE | 54524545 | Tree Data | ❌ |
+| TRKS | 0B9EB87E | Track Settings | ❌ |
+| TSSG | BA353CE1 | The Sims SG System | ❌ |
+| TTAB | 54544142 | Pie Menu Functions | ❌ |
+| TTAs | 54544173 | Pie Menu Strings | ✔️ |
+| TXMT | 49596978 | Material Definitions | ❌ |
+| TXTR | 1C4A276C | Texture | ❌ |
+| UI | 00000000 | User Interface | ❌ |
+| VERS | EBFEE342 | Version Information | ✔️ |
+| VERT | CB4387A1 | Vertex Layer | ❌ |
+| WFR | CD95548E | Wants and Fears | ❌ |
+| WGRA | 0A284D0B | Wall Graph | ❌ |
+| WLL | 8A84D7B0 | Wall Layer | ❌ |
+| WNTT | 6D814AFE | Wants Tree Item | ❌ |
+| WRLD | 49FF7D76 | World Database | ❌ |
+| WTHR | B21BE28B | Weather Info | ❌ |
+| XA | 2026960B | XA Audio | ❌ |
+| XFCH | 8C93E35C | Face Arch XML | ❌ |
+| XFLR | 4DCADB7E | Floor XML | ❌ |
+| XFMD | 0C93E3DE | Face Modifier XML | ❌ |
+| XFNC | 2CB230B8 | Fence XML | ❌ |
+| XFNU | 6C93B566 | Face Neural XML | ❌ |
+| XFRG | 8C93BF6C | Face Region XML | ❌ |
+| XHTN | 8C1580B5 | Hairtone XML | ❌ |
+| XMOL | 0C1FE246 | Mesh Overlay XML | ❌ |
+| XMTO | 584D544F | Material Object Class Dump | ❌ |
+| XNGB | 6D619378 | Neighborhood Object XML | ❌ |
+| XOBJ | 584F424A | Object Class Dump | ❌ |
+| XOBJ | CCA8E925 | Object Class Dump | ❌ |
+| XROF | ACA8EA06 | Roof XML | ❌ |
+| XSTN | 4C158081 | Skintone XML | ❌ |
+| XTOL | 2C1FD8A1 | Texture Overlay XML | ❌ |
+| XWNT | ED7D7B4D | Wants XML | ❌ |
+| UNK | 0C900FDB | Unknown | ❌ |
+| UNK | 0F9F0C21 | Unknown (from Nightlife) | ❌ |
+| UNK | 50455253 | Unknown | ❌ |
+| UNK | 7B1ACFCD | Unknown | ❌ |
+| UNK | 8B0C79D6 | Unknown | ❌ |
+| UNK | 9D796DB4 | Unknown | ❌ |
+| UNK | AB9406AA | Unknown | ❌ |
+| UNK | BC66BAEC | Unknown | ❌ |
+| UNK | CC2A6A34 | Unknown | ❌ |
+| UNK | CC8A6A69 | Unknown | ❌ |
+| UNK | CD8B6498 | Unknown | ❌ |
+| UNK | EC44BDDC | Unknown | ❌ |
