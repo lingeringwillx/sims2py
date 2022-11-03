@@ -7,7 +7,7 @@
 ### Getting Started
 **Requirements:** Requires Windows and Python 3.2 or higher.
 
-**Installation:** Download the build, then make a python file in the same directory as the library and write `import dbpf` to import the library.
+**Installation:** Download the build and place it in a folder. Outside the folder, create a python file and write `import dbpf` to import the library.
 
 **Compilation:**
 If you want to compile the C library yourself, you will need *Mingw-w64* to be installed in your system.
@@ -55,21 +55,29 @@ Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from *fil
 
 Writes *string* into *file* in the 7-bit string format.
 
-**read_package(file_path)**
+**read_file_name(subfile)**
 
-Reads a package file from the provided *file_path* and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
+Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
+
+**get_size(file)**
+
+Returns the size/length of *file*
+
+**print_TGI(subfile)**
+
+Displays the type, group, and instance of a *subfile*.
 
 **create_package()**
 
 Creates a dictionary containing the data necessary to make an empty package file.
 
+**read_package(file_path)**
+
+Reads a package file from the provided *file_path* and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
+
 **write_package(package, file_path)**
 
 Converts the dictionary *package* into a package file and writes it to a file with the provided *file_path*.
-
-**search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
-
-Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
 
 **copy_package(package)**
 
@@ -83,10 +91,6 @@ creates a copy of *header* and returns it.
 
 creates a copy of *subfile* and returns it.
 
-**get_size(file)**
-
-Returns the size/length of *file*
-
 **compress(subfile)**
 
 Compresses the content of *subfile*. If the content of *subfile* is already compressed, then nothing happens. Raises a *CompressionError* if compression fails. Returns a reference to *subfile*.
@@ -95,9 +99,13 @@ Compresses the content of *subfile*. If the content of *subfile* is already comp
 
 Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Raises a *CompressionError* if decompression fails. Returns a reference to *subfile*.
 
-**print_TGI(subfile)**
+**partial_decompress(subfile, size=0)**
 
-Displays the type, group, and instance of a *subfile*.
+Decompresses *subfile* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a bytes object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *subfile*.
+
+**search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
+
+Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
 
 **build_index(subfiles)**
 
@@ -106,14 +114,6 @@ Returns an index that enables faster searching of *subfiles* using the *index_se
 **index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='')**
 
 Similar to the *search* function, but uses the index created by *build_index* for faster searching.
-
-**read_file_name(subfile)**
-
-Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
-
-**partial_decompress(subfile, size=0)**
-
-Decompresses *subfile* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a bytes object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *subfile*.
 
 **unpack_cpf(file)**
 

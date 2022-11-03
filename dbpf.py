@@ -42,6 +42,7 @@ if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] 
     raise Exception('The dbpf library requires Python 3.2 or higher')
     
 named_formats = {0x42434F4E, 0x42484156, 0x4E524546, 0x4F424A44, 0x53545223, 0x54544142, 0x54544173, 0x424D505F, 0x44475250, 0x534C4F54, 0x53505232}
+
 is_64bit = sys.maxsize > 2 ** 32
 
 if is_64bit:
@@ -133,6 +134,53 @@ def write_7bstr(file, string):
     i += 1
     
     return file.write(string.encode('utf-8')) + i
+    
+def read_file_name(subfile):
+    if subfile['type'] in named_formats:
+        return partial_decompress(subfile, 64).rstrip(b'\x00').decode('utf-8')
+    else:
+        return ''
+        
+def get_size(file):
+    current_position = file.tell()
+    
+    file.seek(0, 2)
+    size = file.tell()
+    
+    file.seek(current_position)
+    
+    return size
+    
+def print_TGI(subfile):
+    if 'resource' in subfile:
+        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance'], subfile['resource']))
+    else:
+        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance']))
+        
+def create_package():
+    header = {};
+    header['major version'] = 1
+    header['minor version'] = 1
+    header['major user version'] = 0
+    header['minor user version'] = 0
+    header['flags'] = 0
+    header['created date'] = 0
+    header['modified date'] = 0
+    header['index major version'] = 7
+    header['index entry count'] = 0
+    header['index location'] = 0
+    header['index size'] = 0
+    header['hole index entry count'] = 0
+    header['hole index location'] = 0
+    header['hole index size'] = 0
+    header['index minor version'] = 2
+    
+    header['remainder'] = b''
+
+    for i in range(32):
+        header['remainder'] += b'\x00'
+    
+    return {'header': header, 'subfiles': []}
     
 def read_package(file_path):
     with open(file_path, 'rb') as fs:
@@ -249,31 +297,6 @@ def read_package(file_path):
         
     return {'header': header, 'subfiles': subfiles} 
     
-def create_package():
-    header = {};
-    header['major version'] = 1
-    header['minor version'] = 1
-    header['major user version'] = 0
-    header['minor user version'] = 0
-    header['flags'] = 0
-    header['created date'] = 0
-    header['modified date'] = 0
-    header['index major version'] = 7
-    header['index entry count'] = 0
-    header['index location'] = 0
-    header['index size'] = 0
-    header['hole index entry count'] = 0
-    header['hole index location'] = 0
-    header['hole index size'] = 0
-    header['index minor version'] = 2
-    
-    header['remainder'] = b''
-
-    for i in range(32):
-        header['remainder'] += b'\x00'
-    
-    return {'header': header, 'subfiles': []}
-    
 def write_package(package, file_path):
     header = package['header']
     subfiles = package['subfiles']
@@ -382,34 +405,7 @@ def write_package(package, file_path):
         write_int(file, index_start, 4) #index location
         write_int(file, index_end - index_start, 4) #index size
         write_int(file, 0, 12) #hole index entries
-    
-def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
-    file_name = file_name.lower()
-    
-    indices = []
-    for i, subfile in enumerate(subfiles):
-        if type_id != -1 and type_id != subfile['type']:
-            continue
-            
-        if group_id != -1 and group_id != subfile['group']:
-            continue
-            
-        if instance_id != -1 and instance_id != subfile['instance']:
-            continue
-            
-        if resource_id != -1 and resource_id != subfile['resource']:
-            continue
-            
-        if file_name != '' and file_name not in subfile['name'].lower():
-            continue
-            
-        indices.append(i)
         
-        if get_first:
-            return indices
-            
-    return indices
-    
 #copy.deepcopy from the standard library takes too much time, better to write our own functions
 def copy_package(package):
     package_copy = {}
@@ -440,16 +436,6 @@ def copy_subfile(subfile):
     subfile_copy['compressed'] = subfile['compressed']
     
     return subfile_copy
-    
-def get_size(file):
-    current_position = file.tell()
-    
-    file.seek(0, 2)
-    size = file.tell()
-    
-    file.seek(current_position)
-    
-    return size
     
 #using C++ library from moreawesomethanyou   
 def compress(subfile):
@@ -506,12 +492,75 @@ def decompress(subfile):
     else:
         return subfile
         
-def print_TGI(subfile):
-    if 'resource' in subfile:
-        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance'], subfile['resource']))
-    else:
-        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance']))
+def partial_decompress(subfile, size=0):
+    if subfile['compressed']:
+        subfile['content'].seek(0)
+        src = subfile['content'].read()    
+        dst = ctypes.create_string_buffer(size)
         
+        subfile['content'].seek(6)
+        uncompressed_size = read_int(subfile['content'], 3, 'big')
+        
+        if size == 0 or size > uncompressed_size:
+            subfile['content'].seek(0)
+            compressed_size = read_int(subfile['content'], 4)
+            subfile['content'].seek(6)
+            uncompressed_size = read_int(subfile['content'], 3, 'big')
+            truncate = False
+            
+        else:
+            compressed_size = get_size(subfile['content'])
+            uncompressed_size = size
+            truncate = True
+            
+        success = clib.decompress(src, compressed_size, dst, uncompressed_size, truncate)
+        
+        subfile['content'].seek(0)
+        
+        if success:
+            return dst.raw
+        else:
+            raise CompressionError('Could not decompress the file')
+            
+    else:
+        subfile['content'].seek(0)
+        
+        if size == 0:
+            dst = subfile['content'].read()
+        else:
+            dst = subfile['content'].read(size)
+            
+        subfile['content'].seek(0)
+        
+        return dst
+        
+def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
+    file_name = file_name.lower()
+    
+    indices = []
+    for i, subfile in enumerate(subfiles):
+        if type_id != -1 and type_id != subfile['type']:
+            continue
+            
+        if group_id != -1 and group_id != subfile['group']:
+            continue
+            
+        if instance_id != -1 and instance_id != subfile['instance']:
+            continue
+            
+        if resource_id != -1 and resource_id != subfile['resource']:
+            continue
+            
+        if file_name != '' and file_name not in subfile['name'].lower():
+            continue
+            
+        indices.append(i)
+        
+        if get_first:
+            return indices
+            
+    return indices
+    
 #for faster searching
 def build_index(subfiles):
     index = {}
@@ -578,127 +627,3 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1,
             results = names_set
        
     return list(results)
-    
-def read_file_name(subfile):
-    if subfile['type'] in named_formats:
-        return partial_decompress(subfile, 64).rstrip(b'\x00').decode('utf-8')
-    else:
-        return ''
-        
-def partial_decompress(subfile, size=0):
-    if subfile['compressed']:
-        subfile['content'].seek(0)
-        src = subfile['content'].read()    
-        dst = ctypes.create_string_buffer(size)
-        
-        subfile['content'].seek(6)
-        uncompressed_size = read_int(subfile['content'], 3, 'big')
-        
-        if size == 0 or size > uncompressed_size:
-            subfile['content'].seek(0)
-            compressed_size = read_int(subfile['content'], 4)
-            subfile['content'].seek(6)
-            uncompressed_size = read_int(subfile['content'], 3, 'big')
-            truncate = False
-            
-        else:
-            compressed_size = get_size(subfile['content'])
-            uncompressed_size = size
-            truncate = True
-            
-        success = clib.decompress(src, compressed_size, dst, uncompressed_size, truncate)
-        
-        subfile['content'].seek(0)
-        
-        if success:
-            return dst.raw
-            
-        else:
-            raise CompressionError('Could not decompress the file')
-            
-    else:
-        subfile['content'].seek(0)
-        
-        if size == 0:
-            dst = subfile['content'].read()
-        else:
-            dst = subfile['content'].read(size)
-            
-        subfile['content'].seek(0)
-        
-        return dst
-        
-def unpack_cpf(file):
-    content = {}
-    file.seek(4)
-    content['version'] = read_int(file, 2)
-    count = read_int(file, 4)
-    
-    content['entries'] = []
-    for i in range(count):
-        entry = {}
-        type_code = read_int(file, 4)
-        entry['name'] = read_pstr(file, 4)
-        
-        if type_code == 0xEB61E4F7:
-            entry['type'] = 'uint'
-            entry['data'] = read_int(file, 4)
-            
-        elif type_code == 0x0B8BEA18:
-            entry['type'] = 'str'
-            entry['data'] = read_pstr(file, 4)
-            
-        elif type_code == 0xABC78708:
-            entry['type'] = 'float'
-            entry['data'] = read_float(file)
-            
-        elif type_code == 0xCBA908E1:
-            entry['type'] = 'bool'
-            entry['data'] = read_int(file, 1) != 0
-            
-        elif type_code == 0x0C264712:
-            entry['type'] = 'int'
-            entry['data'] = read_int(file, 4)
-            
-        content['entries'].append(entry)
-            
-    return content
-    
-def pack_cpf(content):
-    file = BytesIO()
-    write_int(file, 0xCBE750E0, 4)
-    write_int(file, content['version'], 2)
-    write_int(file, len(content['entries']), 4)
-    
-    for entry in content['entries']:
-        if entry['type'] == 'uint':
-            write_int(file, 0xEB61E4F7, 4)
-            write_pstr(file, entry['name'], 4)
-            write_int(file, entry['data'], 4)
-            
-        elif entry['type'] == 'str':
-            write_int(file, 0x0B8BEA18, 4)
-            write_pstr(file, entry['name'], 4)
-            write_pstr(file, entry['data'], 4)
-            
-        elif entry['type'] == 'float':
-            write_int(file, 0xABC78708, 4)
-            write_pstr(file, entry['name'], 4)
-            write_float(file, entry['data'])
-            
-        elif entry['type'] == 'bool':
-            write_int(file, 0xCBA908E1, 4)
-            write_pstr(file, entry['name'], 4)
-            
-            if entry['data']:
-                write_int(file, 1, 1)
-            else:
-                write_int(file, 0, 1)
-                
-        elif entry['type'] == 'int':
-            write_int(file, 0x0C264712, 4)
-            write_pstr(file, entry['name'], 4)
-            write_int(file, entry['data'], 4, signed=True)
-            
-    file.seek(0)
-    return file
