@@ -7,10 +7,10 @@
 ### Getting Started
 **Requirements:** Requires Windows and Python 3.2 or higher.
 
-**Installation:** Download the build and place it in a folder. Outside the folder, create a python file and write `import dbpf` to import the library.
+**Installation:** Download the build and place it in a folder named 'dbpf'. Outside the folder, create a python file and write `import dbpf` to import the library.
 
 **Compilation:**
-If you want to compile the C library yourself, you will need *Mingw-w64* to be installed in your system.
+If you want to compile the C library yourself, you will need Mingw-w64 to be installed in your system.
 
 To compile the library, run the compile.bat file.
 
