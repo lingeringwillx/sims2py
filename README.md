@@ -10,11 +10,7 @@
 **Installation:** Download the build, then make a python file in the same directory as the library and write `import dbpf` to import the library.
 
 **Compilation:**
-If you want to compile the C library yourself, you will need the following:
-
-1- MinGW
-
-2- MinGW 64-bit
+If you want to compile the C library yourself, you will need *Mingw-w64* to be installed in your system.
 
 To compile the library, run the compile.bat file.
 
@@ -114,6 +110,16 @@ Similar to the *search* function, but uses the index created by *build_index* fo
 **read_file_name(subfile)**
 
 Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
+
+**partial_decompress(subfile, size=0)**
+
+Decompresses *subfile* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a bytes object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *subfile*.
+
+**unpack_cpf(file)**
+Converts the files that use the CPF file format into a dictionary.
+
+**pack_cpf(content)**
+Converts dictionaries created by the *unpack_cpf* function into a BytesIO file. Returns the file
 
 ### Dictionaries
 Structure of dictionaries created by this script:

@@ -41,7 +41,7 @@ if sys.platform != 'win32':
 if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
     raise Exception('The dbpf library requires Python 3.2 or higher')
     
-named_formats = {0x42434F4E, 0x42484156, 0x4E524546, 0x4F424A44, 0x53545223, 0x54544142, 0x54544173}
+named_formats = {0x42434F4E, 0x42484156, 0x4E524546, 0x4F424A44, 0x53545223, 0x54544142, 0x54544173, 0x424D505F, 0x44475250, 0x534C4F54, 0x53505232}
 is_64bit = sys.maxsize > 2 ** 32
 
 if is_64bit:
@@ -581,29 +581,124 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1,
     
 def read_file_name(subfile):
     if subfile['type'] in named_formats:
-        if subfile['compressed']:
-            subfile['content'].seek(0)
-            src = subfile['content'].read()    
-            dst = ctypes.create_string_buffer(64)
-            
-            compressed_size = get_size(subfile['content'])
-            uncompressed_size = 64
-            
-            #we don't need to decompress the whole file, only decompress the first 64 bytes
-            success = clib.decompress(src, compressed_size, dst, uncompressed_size, True)
-            
-            subfile['content'].seek(0)
-            
-            if success:
-                return dst.raw.rstrip(b'\x00').decode('utf-8')
-                
-            else:
-                raise CompressionError('Could not decompress the file')
-                
-        else:
-            name = subfile['content'].read(64)
-            subfile['content'].seek(0)
-            return name.rstrip(b'\x00').decode('utf-8')
-    
+        return partial_decompress(subfile, 64).rstrip(b'\x00').decode('utf-8')
     else:
         return ''
+        
+def partial_decompress(subfile, size=0):
+    if subfile['compressed']:
+        subfile['content'].seek(0)
+        src = subfile['content'].read()    
+        dst = ctypes.create_string_buffer(size)
+        
+        subfile['content'].seek(6)
+        uncompressed_size = read_int(subfile['content'], 3, 'big')
+        
+        if size == 0 or size > uncompressed_size:
+            subfile['content'].seek(0)
+            compressed_size = read_int(subfile['content'], 4)
+            subfile['content'].seek(6)
+            uncompressed_size = read_int(subfile['content'], 3, 'big')
+            truncate = False
+            
+        else:
+            compressed_size = get_size(subfile['content'])
+            uncompressed_size = size
+            truncate = True
+            
+        success = clib.decompress(src, compressed_size, dst, uncompressed_size, truncate)
+        
+        subfile['content'].seek(0)
+        
+        if success:
+            return dst.raw
+            
+        else:
+            raise CompressionError('Could not decompress the file')
+            
+    else:
+        subfile['content'].seek(0)
+        
+        if size == 0:
+            dst = subfile['content'].read()
+        else:
+            dst = subfile['content'].read(size)
+            
+        subfile['content'].seek(0)
+        
+        return dst
+        
+def unpack_cpf(file):
+    content = {}
+    file.seek(4)
+    content['version'] = read_int(file, 2)
+    count = read_int(file, 4)
+    
+    content['entries'] = []
+    for i in range(count):
+        entry = {}
+        type_code = read_int(file, 4)
+        entry['name'] = read_pstr(file, 4)
+        
+        if type_code == 0xEB61E4F7:
+            entry['type'] = 'uint'
+            entry['data'] = read_int(file, 4)
+            
+        elif type_code == 0x0B8BEA18:
+            entry['type'] = 'str'
+            entry['data'] = read_pstr(file, 4)
+            
+        elif type_code == 0xABC78708:
+            entry['type'] = 'float'
+            entry['data'] = read_float(file)
+            
+        elif type_code == 0xCBA908E1:
+            entry['type'] = 'bool'
+            entry['data'] = read_int(file, 1) != 0
+            
+        elif type_code == 0x0C264712:
+            entry['type'] = 'int'
+            entry['data'] = read_int(file, 4)
+            
+        content['entries'].append(entry)
+            
+    return content
+    
+def pack_cpf(content):
+    file = BytesIO()
+    write_int(file, 0xCBE750E0, 4)
+    write_int(file, content['version'], 2)
+    write_int(file, len(content['entries']), 4)
+    
+    for entry in content['entries']:
+        if entry['type'] == 'uint':
+            write_int(file, 0xEB61E4F7, 4)
+            write_pstr(file, entry['name'], 4)
+            write_int(file, entry['data'], 4)
+            
+        elif entry['type'] == 'str':
+            write_int(file, 0x0B8BEA18, 4)
+            write_pstr(file, entry['name'], 4)
+            write_pstr(file, entry['data'], 4)
+            
+        elif entry['type'] == 'float':
+            write_int(file, 0xABC78708, 4)
+            write_pstr(file, entry['name'], 4)
+            write_float(file, entry['data'])
+            
+        elif entry['type'] == 'bool':
+            write_int(file, 0xCBA908E1, 4)
+            write_pstr(file, entry['name'], 4)
+            
+            if entry['data']:
+                write_int(file, 1, 1)
+            else:
+                write_int(file, 0, 1)
+                
+        elif entry['type'] == 'int':
+            write_int(file, 0x0C264712, 4)
+            write_pstr(file, entry['name'], 4)
+            write_int(file, entry['data'], 4, signed=True)
+            
+    file.seek(0)
+    return file
