@@ -111,6 +111,10 @@ Returns an index that enables faster searching of *subfiles* using the *index_se
 
 Similar to the *search* function, but uses the index created by *build_index* for faster searching.
 
+**read_file_name(subfile)**
+
+Reads the file name of *subfile* for supported file formats.
+
 ### Dictionaries
 Structure of dictionaries created by this script:
 
