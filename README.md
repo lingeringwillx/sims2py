@@ -73,7 +73,7 @@ Converts the dictionary *package* into a package file and writes it to a file wi
 
 **search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
 
-Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file formats contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
+Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
 
 **copy_package(package)**
 
@@ -113,7 +113,7 @@ Similar to the *search* function, but uses the index created by *build_index* fo
 
 **read_file_name(subfile)**
 
-Reads the file name of *subfile* for supported file formats.
+Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
 
 ### Dictionaries
 Structure of dictionaries created by this script:
