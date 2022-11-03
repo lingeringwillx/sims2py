@@ -1,6 +1,7 @@
 from io import BytesIO
 import ctypes
 import os
+import string
 import struct
 import sys
 
@@ -41,6 +42,7 @@ if sys.platform != 'win32':
 if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
     raise Exception('The dbpf library requires Python 3.2 or higher')
     
+named_formats = {0x42434F4E, 0x42484156, 0x4E524546, 0x4F424A44, 0x53545223, 0x54544142, 0x54544173}
 is_64bit = sys.maxsize > 2 ** 32
 
 if is_64bit:
@@ -241,7 +243,11 @@ def read_package(file_path):
                 subfile['compressed'] = True
                 
             subfile['content'].seek(0)
-                
+            
+    #read file names
+    for subfile in subfiles:
+        subfile['name'] = read_file_name(subfile)
+        
     return {'header': header, 'subfiles': subfiles} 
     
 def create_package():
@@ -378,7 +384,9 @@ def write_package(package, file_path):
         write_int(file, index_end - index_start, 4) #index size
         write_int(file, 0, 12) #hole index entries
     
-def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, get_first=False):
+def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
+    file_name = file_name.lower()
+    
     indices = []
     for i, subfile in enumerate(subfiles):
         if type_id != -1 and type_id != subfile['type']:
@@ -391,6 +399,9 @@ def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, ge
             continue
             
         if resource_id != -1 and resource_id != subfile['resource']:
+            continue
+            
+        if file_name != '' and file_name not in subfile['name'].lower():
             continue
             
         indices.append(i)
@@ -509,6 +520,7 @@ def build_index(subfiles):
     index['groups'] = {}
     index['instances'] = {}
     index['resources'] = {}
+    index['names'] = []
     
     for i, subfile in enumerate(subfiles):
         if subfile['type'] not in index['types']:
@@ -531,12 +543,68 @@ def build_index(subfiles):
                 index['resources'][subfile['resource']] = set()
                 
             index['resources'][subfile['resource']].add(i)
+            
+        index['names'].append(subfile['name'].lower())
         
     return index
     
 #faster search
-def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1):
+def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name=''):
+    results = []
     keys = ['types', 'groups', 'instances', 'resources']
     values = [type_id, group_id, instance_id, resource_id]
     
-    return list(set.intersection(*[index[key][value] for key, value in zip(keys, values) if value != -1]))
+    for key, value in zip(keys, values):
+        if value == -1:
+            pass
+        elif value in index[key]:
+            results.append(index[key][value])
+        else:
+            return []
+        
+    if len(results) > 0:
+        results = set.intersection(*results)
+        
+    if file_name != '':
+        file_name = file_name.lower()
+        
+        if len(results) > 0:
+            names_set = set(i for i in results if file_name in index['names'][i]) 
+        else:
+            names_set = set(i for i, index_name in enumerate(index['names']) if file_name in index_name)
+            
+        if len(results) > 0:
+            results = results.intersection(names_set)
+        else:
+            results = names_set
+       
+    return list(results)
+    
+def read_file_name(subfile):
+    if subfile['type'] in named_formats:
+        if subfile['compressed']:
+            subfile['content'].seek(0)
+            src = subfile['content'].read()    
+            dst = ctypes.create_string_buffer(64)
+            
+            compressed_size = get_size(subfile['content'])
+            uncompressed_size = 64
+            
+            #we don't need to decompress the whole file, only decompress the first 64 bytes
+            success = clib.decompress(src, compressed_size, dst, uncompressed_size, True)
+            
+            subfile['content'].seek(0)
+            
+            if success:
+                return dst.raw.rstrip(b'\x00').decode('utf-8')
+                
+            else:
+                raise CompressionError('Could not decompress the file')
+                
+        else:
+            name = subfile['content'].read(64)
+            subfile['content'].seek(0)
+            return name.rstrip(b'\x00').decode('utf-8')
+    
+    else:
+        return ''
