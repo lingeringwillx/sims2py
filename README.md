@@ -21,30 +21,39 @@ To compile the library, run the compile.bat file.
 converts bytes object *b* to an integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
 
 **int2bytes(n, numbytes, endian='little', signed=False)**
+
 converts integer *n* to a bytes object. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
 
 **bytes2float(b, endian='little')**
+
 converts bytes object *b* to a float. The endian can be specified with the *endian* argument.
 
 **float2bytes(n, endian='little')**
+
 converts float *n* to a bytes object. The endian can be specified with the *endian* argument.
 
 **bytes2str(b)**
+
 converts *b* to a string.
 
 **str2bytes(s, null_term=False)**
+
 converts string *s* to a bytes object. if *null_term* is set to True, then a null termination will be appended to the end.
 
 **pstr2str(b, numbytes)**
+
 converts a bytes object *b* in the pascal string format into a string. The number of bytes containing the string's length can be specified with *numbytes*. The function will read up to the length specified in the first *numbytes* and ignore the rest.
 
 **str2pstr(s, numbytes)**
+
 convert string *s* into a bytes object in the pascal string format. The number of bytes that would contain the length of the string can be specified with *numbytes*.
 
 **bstr2str(b)**
+
 converts a bytes object *b* in the [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) format into a string. The function will read up to the length specified in the first few bytes and ignore the rest of the bytes object.
 
 **def str2bstr(s)**
+
 convert string *s* into a bytes object in the 7-bit string format.
 
 **read_int(file, numbytes, endian='little', signed=False)**
@@ -92,12 +101,15 @@ Writes *string* into *file* in the 7-bit string format.
 Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place.
 
 **read_all(file)**
+
 Reads all of the content of *file*.
 
 **write_all(file, buffer)**
+
 Overwrites the entire file with bytes object *buffer*.
 
 **search_file(file, bytes_sequence, n=1)**
+
 Searches *file* for *bytes_sequence* and returns the location in which it's nth occurrence can be found. Returns -1 if *bytes_sequence* is not found.
 
 **get_size(file)**
