@@ -52,7 +52,7 @@ convert string *s* into a bytes object in the pascal string format. The number o
 
 converts a bytes object *b* in the [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) format into a string. The function will read up to the length specified in the first few bytes and ignore the rest of the bytes object.
 
-**def str2bstr(s)**
+**str2bstr(s)**
 
 convert string *s* into a bytes object in the 7-bit string format.
 
