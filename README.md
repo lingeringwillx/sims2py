@@ -15,6 +15,38 @@ If you want to compile the C library yourself, you will need Mingw-w64 to be ins
 To compile the library, run the compile.bat file.
 
 ### Functions
+
+**bytes2int(b, endian='little', signed=False)**
+
+converts bytes object *b* to an integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+
+**int2bytes(n, numbytes, endian='little', signed=False)**
+converts integer *n* to a bytes object. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+
+**bytes2float(b, endian='little')**
+converts bytes object *b* to a float. The endian can be specified with the *endian* argument.
+
+**float2bytes(n, endian='little')**
+converts float *n* to a bytes object. The endian can be specified with the *endian* argument.
+
+**bytes2str(b)**
+converts *b* to a string.
+
+**str2bytes(s, null_term=False)**
+converts string *s* to a bytes object. if *null_term* is set to True, then a null termination will be appended to the end.
+
+**pstr2str(b, numbytes)**
+converts a bytes object *b* in the pascal string format into a string. The number of bytes containing the string's length can be specified with *numbytes*. The function will read up to the length specified in the first *numbytes* and ignore the rest.
+
+**str2pstr(s, numbytes)**
+convert string *s* into a bytes object in the pascal string format. The number of bytes that would contain the length of the string can be specified with *numbytes*.
+
+**bstr2str(b)**
+converts a bytes object *b* in the [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) format into a string. The function will read up to the length specified in the first few bytes and ignore the rest of the bytes object.
+
+**def str2bstr(s)**
+convert string *s* into a bytes object in the 7-bit string format.
+
 **read_int(file, numbytes, endian='little', signed=False)**
 
 Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
@@ -55,17 +87,33 @@ Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from *fil
 
 Writes *string* into *file* in the 7-bit string format.
 
-**read_file_name(subfile)**
+**overwrite(file, bytes_sequence, start, size)**
 
-Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
+Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place.
+
+**read_all(file)**
+Reads all of the content of *file*.
+
+**write_all(file, buffer)**
+Overwrites the entire file with bytes object *buffer*.
+
+**search_file(file, bytes_sequence, n=1)**
+Searches *file* for *bytes_sequence* and returns the location in which it's nth occurrence can be found. Returns -1 if *bytes_sequence* is not found.
 
 **get_size(file)**
 
 Returns the size/length of *file*
 
-**print_TGI(subfile)**
+**print_tgi(subfile)**
 
-Displays the type, group, and instance of a *subfile*.
+Displays the type, group, and instance of *subfile*, as will as the name of *subfile* if it has a name.
+
+**read_file_name(subfile)**
+
+Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
+
+**write_file_name(subfile)**
+Writes *subfile['name']* to *subfile['content']*. Only works with supported file types.
 
 **create_package()**
 
@@ -75,7 +123,7 @@ Creates a dictionary containing the data necessary to make an empty package file
 
 Reads a package file from the provided *file_path* and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
 
-**write_package(package, file_path)**
+**write_package(file_path, package)**
 
 Converts the dictionary *package* into a package file and writes it to a file with the provided *file_path*.
 
@@ -99,9 +147,9 @@ Compresses the content of *subfile*. If the content of *subfile* is already comp
 
 Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Raises a *CompressionError* if decompression fails. Returns a reference to *subfile*.
 
-**partial_decompress(subfile, size=0)**
+**partial_decompress(subfile, size=-1)**
 
-Decompresses *subfile* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a bytes object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *subfile*.
+Decompresses *subfile* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a BytesIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *subfile*.
 
 **search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
 
@@ -117,7 +165,7 @@ Similar to the *search* function, but uses the index created by *build_index* fo
 
 **unpack_cpf(file)**
 
-Converts the files that use the [CPF](#cpf-dict) file format into a dictionary.
+Converts the files that use the [CPF](#cpf-dict) file format into a dictionary. *file* needs to decompressed before passing it into the function.
 
 **pack_cpf(content)**
 
@@ -182,9 +230,11 @@ Usually called *entries*. Each element in this list contains the following:
 
 **'compressed'** (bool): Indicates whether the entry is compressed or not.
 
+**'name'** (str): Contains the name of the subfile for supported file types. Keep in mind that changing this value will not change the actual name in *'content'*. To write the new name to *'content'*, use the *write_file_name* function.
+
 -----
 
-#### CPF (dict)
+#### cpf (dict)
 CPF dictionaries created by the *unpack_cpf* function contain the following:
 
 **'version'** (int)

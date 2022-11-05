@@ -33,6 +33,7 @@ subfile: #aka entries
 'resource': int #entry resource, only exists if the index minor version is 2
 'content' = BytesIO #file-like object stored in memory containing the entry itself
 'compressed' = bool #indicates whether the entry is compressed or not
+'name' = str #name of subfile
 """
 
 if sys.platform != 'win32':
@@ -41,7 +42,9 @@ if sys.platform != 'win32':
 if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
     raise Exception('The dbpf library requires Python 3.2 or higher')
     
-named_formats = {0x42434F4E, 0x42484156, 0x4E524546, 0x4F424A44, 0x53545223, 0x54544142, 0x54544173, 0x424D505F, 0x44475250, 0x534C4F54, 0x53505232}
+named_types = {0x42434F4E, 0x42484156, 0x4E524546, 0x4F424A44, 0x53545223, 0x54544142, 0x54544173, 0x424D505F, 0x44475250, 0x534C4F54, 0x53505232}
+named_rcol_types = {0xFB00791E, 0x4D51F042, 0xE519C933, 0xAC4F8687, 0x7BA3838C, 0xC9C81B9B, 0xC9C81BA3, 0xC9C81BA9, 0xC9C81BAD, 0xED534136, 0xFC6EB1F7, 0x49596978, 0x1C4A276C}
+named_cpf_types = {0x2C1FD8A1, 0x0C1FE246, 0xEBCF3E27}
 
 is_64bit = sys.maxsize > 2 ** 32
 
@@ -54,6 +57,78 @@ clib.decompress.restype = ctypes.c_bool
 
 class RepeatKeyError(Exception): pass
 class CompressionError(Exception): pass
+class NameError(Exception): pass
+
+def bytes2int(b, endian='little', signed=False):
+    return int.from_bytes(b, endian, signed=signed)
+    
+def int2bytes(n, numbytes, endian='little', signed=False):
+    return n.to_bytes(numbytes, endian, signed=signed)
+    
+def bytes2float(b, endian='little'):
+    if endian == 'little':
+        return struct.unpack('<f', b)[0]
+    elif endian == 'big':
+        return struct.unpack('>f', b)[0]
+    else:
+        raise ValueError("Unexpected endian '{}'".format(endian))
+        
+def float2bytes(n, endian='little'):
+    if endian == 'little':
+        return struct.pack('<f', n)
+    elif endian == 'big':
+        return struct.pack('>f', n)
+    else:
+        raise ValueError("Unexpected endian '{}'".format(endian))
+        
+def bytes2str(b):
+        return b.decode('utf-8')
+        
+def str2bytes(s, null_term=False):
+    b = s.encode('utf-8')
+    
+    if null_term:
+        b += b'\x00'
+
+    return b
+    
+def pstr2str(b, numbytes):
+    length = bytes2int(b[:numbytes])
+    start = numbytes
+    end = start + length
+    return bytes2str(b[start:end])
+    
+def str2pstr(s, numbytes):
+    return int2bytes(len(s), numbytes) + str2bytes(s)
+
+def bstr2str(b):
+    length = 0
+    i = 0
+
+    byte = b[i]
+    while byte & 0b10000000 != 0:
+        length |= (byte & 0b01111111) << (7 * i)
+        i += 1
+        
+        byte = b[i]
+        
+    length |= byte << (7 * i)
+    start = i + 1
+    end = start + length
+    return bytes2str(b[start:end])
+    
+def str2bstr(s):
+    length = len(s)
+    b = b''
+    
+    while length > 127:
+        b += int2bytes(length & 0b01111111 | 0b10000000, 1)
+        length >>= 7
+        
+    b += int2bytes(length, 1)
+    b += str2bytes(s)
+    
+    return b
 
 def read_int(file, numbytes, endian='little', signed=False):
     return int.from_bytes(file.read(numbytes), endian, signed=signed)
@@ -104,7 +179,7 @@ def read_pstr(file, numbytes):
 
 def write_pstr(file, string, numbytes):
     write_int(file, len(string), numbytes)
-    return file.write(string.encode('utf-8')) + 4
+    return file.write(string.encode('utf-8')) + numbytes
     
 def read_7bstr(file):
     length = 0
@@ -135,12 +210,43 @@ def write_7bstr(file, string):
     
     return file.write(string.encode('utf-8')) + i
     
-def read_file_name(subfile):
-    if subfile['type'] in named_formats:
-        return partial_decompress(subfile, 64).rstrip(b'\x00').decode('utf-8')
-    else:
-        return ''
+def overwrite(file, bytes_sequence, start, size):
+    file.seek(start + size)
+    buffer = file.read()
+    file.seek(start)
+    file.write(bytes_sequence)
+    file.write(buffer)
+    file.truncate()
+    file.seek(0)
+    
+def read_all(file):
+    file.seek(0)
+    buffer = file.read()
+    file.seek(0)
+    return buffer
+    
+def write_all(file, buffer):
+    file.seek(0)
+    length = file.write(buffer)
+    file.truncate()
+    file.seek(0)
+    return length
+    
+def search_file(file, bytes_sequence, n=1):
+    if n < 1:
+        raise ValueError('The n argument of search_file should be larger than zero')
         
+    content = read_all(file)
+    start = content.find(bytes_sequence, 0)
+    
+    for i in range(1, n):
+        start = content.find(bytes_sequence, start + 1)
+        
+        if start == -1:
+            break
+            
+    return start
+    
 def get_size(file):
     current_position = file.tell()
     
@@ -151,11 +257,109 @@ def get_size(file):
     
     return size
     
-def print_TGI(subfile):
+def print_tgi(subfile):
+    if subfile['name'] != '':
+        print()
+        print(subfile['name'])
+        
     if 'resource' in subfile:
         print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance'], subfile['resource']))
     else:
         print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance']))
+        
+def read_file_name(subfile):
+    if subfile['type'] in named_types:
+        return partial_decompress(subfile, 64).read().rstrip(b'\x00').decode('utf-8')
+        
+    elif subfile['type'] in named_rcol_types:
+        file = partial_decompress(subfile, 255)
+        location = search_file(file, b'cSGResource')
+        
+        if location == -1:
+            return ''
+        else:
+            file.seek(location + 19)
+            return read_7bstr(file)
+            
+    elif subfile['type'] in named_cpf_types:
+        file = partial_decompress(subfile)
+        location = search_file(file, b'name')
+        
+        if location == -1:
+            return ''
+        else:
+            file.seek(location + 4)
+            return read_pstr(file, 4)
+            
+    elif subfile['type'] == 0x46574156:
+        file = partial_decompress(subfile)
+        file.seek(64)
+        return file.read().rstrip(b'\x00').decode('utf-8')
+        
+    else:
+        return ''
+        
+def write_file_name(subfile):
+    was_compressed = False
+    
+    if subfile['type'] in named_types:
+        if subfile['compressed']:
+            decompress(subfile)
+            was_compressed = True
+            
+            if len(subfile) <= 64:
+                subfile['content'].seek(0)
+                write_str(subfile['content'], subfile['name'])
+                write_int(subfile['content'], 0, 64 - len(subfile['name']))
+                subfile['content'].seek(0)
+            else:
+                raise NameError("file name '{}' is longer than expected".format(subfile['name']))
+                
+    elif subfile['type'] in named_rcol_types:
+        if subfile['compressed']:
+            decompress(subfile)
+            was_compressed = True
+            
+        location = search_file(subfile['content'], b'cSGResource')
+        
+        if location != -1:
+            location += 19
+            subfile['content'].seek(location)
+            length = len(read_7bstr(subfile['content'])) + 1
+            
+            if length > 127 + 1:
+                length += 1
+                
+            overwrite(subfile['content'], str2bstr(subfile['name']), location, length) 
+            subfile['content'].seek(0)
+            
+    elif subfile['type'] in named_cpf_types:
+        if subfile['compressed']:
+            decompress(subfile)
+            was_compressed = True
+            
+        location = search_file(subfile['content'], b'name')
+        
+        if location != -1:
+            location += 4
+            subfile['content'].seek(location)
+            length = read_int(subfile['content'], 4) + 4
+            
+            overwrite(subfile['content'], str2pstr(subfile['name'], 4), location, length) 
+            subfile['content'].seek(0)
+            
+    elif subfile['type'] == 0x46574156:
+        if subfile['compressed']:
+            decompress(subfile)
+            was_compressed = True
+            
+        subfile['content'].seek(64)
+        write_str(subfile['content'], subfile['name'], null_term=True)
+        subfile['content'].truncate()
+        subfile['content'].seek(0)
+        
+    if was_compressed:
+        compress(subfile)
         
 def create_package():
     header = {};
@@ -293,18 +497,28 @@ def read_package(file_path):
             
     #read file names
     for subfile in subfiles:
-        subfile['name'] = read_file_name(subfile)
+        try:
+            subfile['name'] = read_file_name(subfile)
+        except CompressionError:
+            subfile['name'] = ''
         
     return {'header': header, 'subfiles': subfiles} 
     
-def write_package(package, file_path):
+def write_package(file_path, package):
     header = package['header']
     subfiles = package['subfiles']
+    
+    #update file names
+    #for subfile in subfiles:
+    #try:
+    #    write_file_name(subfile)
+    #except CompressionError:
+    #    pass
     
     #use index minor version 2?
     if header['index minor version'] != 2:
         for subfile in subfiles:
-            if 'resource' in subfile:
+            if 'resource' in subfile and subfile['resource'] != 0:
                 header['index minor version'] = 2
                 break
                 
@@ -371,10 +585,9 @@ def write_package(package, file_path):
         for subfile in subfiles:
             #get new location to put in the index later
             subfile['location'] = file.tell()
-        
-            subfile['content'].seek(0)
-            file.write(subfile['content'].read())
-        
+            
+            file.write(read_all(subfile['content']))
+            
             #get new file size to put in the index later
             subfile['size'] = file.tell() - subfile['location']
             
@@ -430,8 +643,7 @@ def copy_subfile(subfile):
     if 'resource' in subfile:
         subfile_copy['resource'] = subfile['resource']
         
-    subfile['content'].seek(0)
-    subfile_copy['content'] = BytesIO(subfile['content'].read())
+    subfile_copy['content'] = BytesIO(read_all(subfile['content']))
     
     subfile_copy['compressed'] = subfile['compressed']
     
@@ -443,21 +655,16 @@ def compress(subfile):
         return subfile
         
     else:
-        subfile['content'].seek(0)
-        
-        src = subfile['content'].read()
+        src = read_all(subfile['content'])
         src_len = len(src)
         dst = ctypes.create_string_buffer(src_len)
         
         dst_len = clib.try_compress(src, src_len, dst)
         
         if dst_len > 0:
-            subfile['content'].seek(0)
-            subfile['content'].write(dst.raw[:dst_len])
-            subfile['content'].truncate()
+            write_all(subfile['content'], dst.raw[:dst_len])
             subfile['compressed'] = True
             
-            subfile['content'].seek(0)
             return subfile
             
         else:
@@ -471,19 +678,15 @@ def decompress(subfile):
         subfile['content'].seek(6)
         uncompressed_size = read_int(subfile['content'], 3, 'big')
         
-        subfile['content'].seek(0)
-        src = subfile['content'].read()    
+        src = read_all(subfile['content'])
         dst = ctypes.create_string_buffer(uncompressed_size)
         
         success = clib.decompress(src, compressed_size, dst, uncompressed_size, False)
         
         if success:
-            subfile['content'].seek(0)
-            subfile['content'].write(dst.raw)
-            subfile['content'].truncate()
+            write_all(subfile['content'], dst.raw)
             subfile['compressed'] = False
             
-            subfile['content'].seek(0)
             return subfile
             
         else:
@@ -492,24 +695,20 @@ def decompress(subfile):
     else:
         return subfile
         
-def partial_decompress(subfile, size=0):
+def partial_decompress(subfile, size=-1):
     if subfile['compressed']:
-        subfile['content'].seek(0)
-        src = subfile['content'].read()    
-        dst = ctypes.create_string_buffer(size)
+        src = read_all(subfile['content'])  
+        compressed_size = get_size(subfile['content'])
         
         subfile['content'].seek(6)
         uncompressed_size = read_int(subfile['content'], 3, 'big')
         
-        if size == 0 or size > uncompressed_size:
-            subfile['content'].seek(0)
-            compressed_size = read_int(subfile['content'], 4)
-            subfile['content'].seek(6)
-            uncompressed_size = read_int(subfile['content'], 3, 'big')
+        if size == -1 or size >= uncompressed_size:
+            dst = ctypes.create_string_buffer(uncompressed_size)
             truncate = False
             
         else:
-            compressed_size = get_size(subfile['content'])
+            dst = ctypes.create_string_buffer(size)
             uncompressed_size = size
             truncate = True
             
@@ -518,21 +717,16 @@ def partial_decompress(subfile, size=0):
         subfile['content'].seek(0)
         
         if success:
-            return dst.raw
+            return BytesIO(dst.raw)
         else:
             raise CompressionError('Could not decompress the file')
             
     else:
+        #if size is -1, then read(size) will read the whole file
         subfile['content'].seek(0)
-        
-        if size == 0:
-            dst = subfile['content'].read()
-        else:
-            dst = subfile['content'].read(size)
-            
+        dst = subfile['content'].read(size)
         subfile['content'].seek(0)
-        
-        return dst
+        return BytesIO(dst)
         
 def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
     file_name = file_name.lower()
