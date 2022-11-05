@@ -3,8 +3,7 @@
 
 2- To enable quick script editing of the game's files.
 
-## Documentation
-### Getting Started
+## Getting Started
 **Requirements:** Requires Windows and Python 3.2 or higher.
 
 **Installation:** Download the build and place it in a folder named 'dbpf'. Outside the folder, create a python file and write `import dbpf` to import the library.
@@ -14,7 +13,13 @@ If you want to compile the C library yourself, you will need Mingw-w64 to be ins
 
 To compile the library, run the compile.bat file.
 
-### Functions
+## Functions
+
+List of functions provided by the library:
+
+-----
+
+### Type Conversions
 
 **bytes2int(b, endian='little', signed=False)**
 
@@ -56,6 +61,10 @@ Converts a bytes object *b* in the [7-bit string](https://modthesims.info/wiki.p
 
 convert string *s* into a bytes object in the 7-bit string format.
 
+-----
+
+### File IO
+
 **read_int(file, numbytes, endian='little', signed=False)**
 
 Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
@@ -96,9 +105,9 @@ Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from *fil
 
 Writes *string* into *file* in the 7-bit string format.
 
-**overwrite(file, bytes_sequence, start, size)**
+-----
 
-Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place.
+### File Utils
 
 **read_all(file)**
 
@@ -108,6 +117,10 @@ Reads all of the content of *file*.
 
 Overwrites the entire file with bytes object *buffer*.
 
+**overwrite(file, bytes_sequence, start, size)**
+
+Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place.
+
 **search_file(file, bytes_sequence, n=1)**
 
 Searches *file* for *bytes_sequence* and returns the location in which it's nth occurrence can be found. Returns -1 if *bytes_sequence* is not found.
@@ -116,17 +129,9 @@ Searches *file* for *bytes_sequence* and returns the location in which it's nth 
 
 Returns the size/length of *file*
 
-**print_tgi(subfile)**
+-----
 
-Displays the type, group, and instance of *subfile*, as will as the name of *subfile* if it has a name.
-
-**read_file_name(subfile)**
-
-Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
-
-**write_file_name(subfile)**
-
-Writes *subfile['name']* to *subfile['content']*. Only works with supported file types.
+### Package Utils
 
 **create_package()**
 
@@ -176,6 +181,18 @@ Returns an index that enables faster searching of *subfiles* using the *index_se
 
 Similar to the *search* function, but uses the index created by *build_index* for faster searching.
 
+**print_tgi(subfile)**
+
+Displays the type, group, and instance of *subfile*, as will as the name of *subfile* if it has a name.
+
+**read_file_name(subfile)**
+
+Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
+
+**write_file_name(subfile)**
+
+Writes *subfile['name']* to *subfile['content']*. Only works with supported file types.
+
 **unpack_cpf(file)**
 
 Converts the files that use the [CPF](#cpf-dict) file format into a dictionary. *file* needs to decompressed before passing it into the function.
@@ -184,7 +201,7 @@ Converts the files that use the [CPF](#cpf-dict) file format into a dictionary. 
 
 Converts dictionaries created by the *unpack_cpf* function into a BytesIO file. Returns the file
 
-### Dictionaries
+## Dictionaries
 Structure of dictionaries created by this script:
 
 #### package (dict)
