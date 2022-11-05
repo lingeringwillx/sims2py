@@ -18,31 +18,31 @@ To compile the library, run the compile.bat file.
 
 **bytes2int(b, endian='little', signed=False)**
 
-converts bytes object *b* to an integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+Converts bytes object *b* to an integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
 
 **int2bytes(n, numbytes, endian='little', signed=False)**
 
-converts integer *n* to a bytes object. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+Converts integer *n* to a bytes object. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
 
 **bytes2float(b, endian='little')**
 
-converts bytes object *b* to a float. The endian can be specified with the *endian* argument.
+Converts bytes object *b* to a float. The endian can be specified with the *endian* argument.
 
 **float2bytes(n, endian='little')**
 
-converts float *n* to a bytes object. The endian can be specified with the *endian* argument.
+Converts float *n* to a bytes object. The endian can be specified with the *endian* argument.
 
 **bytes2str(b)**
 
-converts *b* to a string.
+Converts *b* to a string.
 
 **str2bytes(s, null_term=False)**
 
-converts string *s* to a bytes object. if *null_term* is set to True, then a null termination will be appended to the end.
+Converts string *s* to a bytes object. if *null_term* is set to True, then a null termination will be appended to the end.
 
 **pstr2str(b, numbytes)**
 
-converts a bytes object *b* in the pascal string format into a string. The number of bytes containing the string's length can be specified with *numbytes*. The function will read up to the length specified in the first *numbytes* and ignore the rest.
+Converts a bytes object *b* in the pascal string format into a string. The number of bytes containing the string's length can be specified with *numbytes*. The function will read up to the length specified in the first *numbytes* and ignore the rest.
 
 **str2pstr(s, numbytes)**
 
@@ -50,7 +50,7 @@ convert string *s* into a bytes object in the pascal string format. The number o
 
 **bstr2str(b)**
 
-converts a bytes object *b* in the [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) format into a string. The function will read up to the length specified in the first few bytes and ignore the rest of the bytes object.
+Converts a bytes object *b* in the [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) format into a string. The function will read up to the length specified in the first few bytes and ignore the rest of the bytes object.
 
 **str2bstr(s)**
 
@@ -125,6 +125,7 @@ Displays the type, group, and instance of *subfile*, as will as the name of *sub
 Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
 
 **write_file_name(subfile)**
+
 Writes *subfile['name']* to *subfile['content']*. Only works with supported file types.
 
 **create_package()**
