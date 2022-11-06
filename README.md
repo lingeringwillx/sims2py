@@ -117,13 +117,13 @@ Reads all of the content of *file*.
 
 Overwrites the entire file with bytes object *buffer*.
 
-**overwrite(file, bytes_sequence, start, size)**
+**overwrite(file, bytes_sequence, start, size=0)**
 
 Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place.
 
 **search_file(file, bytes_sequence, n=1)**
 
-Searches *file* for *bytes_sequence* and returns the location in which it's nth occurrence can be found. Returns -1 if *bytes_sequence* is not found.
+Searches *file* for *bytes_sequence* and returns the location in which it's *nth* occurrence can be found. Returns -1 if *bytes_sequence* is not found.
 
 **get_size(file)**
 
@@ -277,11 +277,11 @@ CPF dictionaries created by the *unpack_cpf* function contain the following:
 
 | Type | Name |
 | --- | --- |
-| uint | Unsigned Integer |
-| str | String |
-| float | Float |
-| bool | Boolean |
-| int | Signed Integer |
+| uint | unsigned integer |
+| str | string |
+| float | float |
+| bool | boolean |
+| int | signed integer |
 
 **'data'** (specified by *'type'*): the actual data in the entry.
 
