@@ -1,6 +1,7 @@
 from io import BytesIO
 import ctypes
 import os
+import string
 import struct
 import sys
 
@@ -658,8 +659,12 @@ def build_index(subfiles):
     index['groups'] = {}
     index['instances'] = {}
     index['resources'] = {}
-    index['names'] = []
+    index['names index'] = {}
+    index['names list'] = []
     
+    for c in string.printable:
+        index['names index'][c] = set()
+        
     for i, subfile in enumerate(subfiles):
         if subfile['type'] not in index['types']:
             index['types'][subfile['type']] = set()
@@ -682,8 +687,13 @@ def build_index(subfiles):
                 
             index['resources'][subfile['resource']].add(i)
             
-        index['names'].append(subfile['name'].lower())
+        name = subfile['name'].lower()
+        index['names list'].append(name)
         
+        if name != '':
+            for char in name:
+                index['names index'][char].add(i)
+                
     return index
     
 #faster search
@@ -705,17 +715,16 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1,
         
     if file_name != '':
         file_name = file_name.lower()
+        names_set = (index['names index'][char] for char in file_name)
         
         if len(results) > 0:
-            names_set = set(i for i in results if file_name in index['names'][i]) 
+            results = results.intersection(*names_set)
         else:
-            names_set = set(i for i, index_name in enumerate(index['names']) if file_name in index_name)
+            results = set.intersection(*names_set)
             
-        if len(results) > 0:
-            results = results.intersection(names_set)
-        else:
-            results = names_set
-       
+        if len(file_name) > 1:
+            results = [i for i in results if file_name in index['names list'][i]]
+            
     return list(results)
     
 def print_tgi(subfile):
