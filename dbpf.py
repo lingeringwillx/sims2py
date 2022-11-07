@@ -723,7 +723,7 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1,
             results = set.intersection(*names_set)
             
         if len(file_name) > 1:
-            results = [i for i in results if file_name in index['names list'][i]]
+            return [i for i in results if file_name in index['names list'][i]]
             
     return list(results)
     
