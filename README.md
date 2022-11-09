@@ -155,7 +155,7 @@ creates a copy of *header* and returns it.
 
 **create_entry(type_id, group_id, instance_id, resource_id=None, name='', content=b'', compressed=False)**
 
-creates and entry containing the provided arguments.
+creates an entry containing the provided arguments.
 
 **copy_entry(entry)**
 
