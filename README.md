@@ -153,49 +153,53 @@ Creates a copy of *package* and returns it.
 
 creates a copy of *header* and returns it.
 
-**copy_subfile(subfile)**
+**create_entry(type_id, group_id, instance_id, resource_id=None, name='', content=b'', compressed=False)**
 
-creates a copy of *subfile* and returns it.
+creates and entry containing the provided arguments.
 
-**compress(subfile)**
+**copy_entry(entry)**
 
-Compresses the content of *subfile*. If the content of *subfile* is already compressed, then nothing happens. Raises a *CompressionError* if compression fails. Returns a reference to *subfile*.
+creates a copy of *entry* and returns it.
 
-**decompress(subfile)**
+**compress(entry)**
 
-Decompresses the content of *subfile*. If the content of *subfile* is already decompressed, then nothing happens. Raises a *CompressionError* if decompression fails. Returns a reference to *subfile*.
+Compresses the content of *entry*. If the content of *entry* is already compressed, then nothing happens. Raises a *CompressionError* if compression fails. Returns a reference to *entry*.
 
-**partial_decompress(subfile, size=-1)**
+**decompress(entry)**
 
-Decompresses *subfile* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a BytesIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *subfile*.
+Decompresses the content of *entry*. If the content of *entry* is already decompressed, then nothing happens. Raises a *CompressionError* if decompression fails. Returns a reference to *entry*.
 
-**search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
+**partial_decompress(entry, size=-1)**
 
-Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the subfiles matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
+Decompresses *entry* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a BytesIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
 
-**build_index(subfiles)**
+**search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
 
-Returns an index that enables faster searching of *subfiles* using the *index_search* function. The returned index does NOT get updated when making changes to *subfiles* after the function is called.
+Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the entries matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
+
+**build_index(entries)**
+
+Returns an index that enables faster searching of *entries* using the *index_search* function. The returned index does NOT get updated when making changes to *entries* after the function is called.
 
 **index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='')**
 
 Similar to the *search* function, but uses the index created by *build_index* for faster searching.
 
-**print_tgi(subfile)**
+**print_tgi(entry)**
 
-Displays the type, group, and instance of *subfile*, as will as the name of *subfile* if it has a name.
+Displays the type, group, and instance of *entry*, as will as the name of *entry* if it has a name.
 
-**read_file_name(subfile)**
+**read_file_name(entry)**
 
-Reads the file name of *subfile* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
+Reads the file name of *entry* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
 
-**write_file_name(subfile)**
+**write_file_name(entry)**
 
-Writes *subfile['name']* to *subfile['content']*. Only works with supported file types.
+Writes *entry['name']* to *entry['content']*. Only works with supported file types.
 
 **unpack_cpf(file)**
 
-Converts the files that use the [CPF](#cpf-dict) file format into a dictionary. *file* needs to decompressed before passing it into the function.
+Converts the files that use the [CPF](#cpf-dict) file format into a dictionary. *file* needs to decompressed before passing it to the function.
 
 **pack_cpf(content)**
 
@@ -205,7 +209,7 @@ Converts dictionaries created by the *unpack_cpf* function into a BytesIO file. 
 Structure of dictionaries created by this script:
 
 #### package (dict)
-Dictionary containing *header* and *subfiles*
+Dictionary containing *header* and *entries*
 
 -----
 
@@ -245,8 +249,8 @@ Dictionary containing *header* and *subfiles*
 
 -----
 
-#### subfiles (list of dicts)
-Usually called *entries*. Each element in this list contains the following:
+#### entries (list of dicts)
+Each element in this list contains the following:
 
 **'type'** (int): Entry type.
 
@@ -260,7 +264,7 @@ Usually called *entries*. Each element in this list contains the following:
 
 **'compressed'** (bool): Indicates whether the entry is compressed or not.
 
-**'name'** (str): Contains the name of the subfile for supported file types. Keep in mind that changing this value will not change the actual name in *'content'*. To write the new name to *'content'*, use the *write_file_name* function.
+**'name'** (str): Contains the name of the entry for supported file types. Keep in mind that changing this value will not change the actual name in *'content'*. To write the new name to *'content'*, use the *write_file_name* function.
 
 -----
 

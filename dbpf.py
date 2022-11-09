@@ -7,7 +7,7 @@ import sys
 
 """
 Structure of dictionaries created by this script:
-package: {header: dict, subfiles: list of dicts}
+package: {header: dict, entries: list of dicts}
 
 header:
 'major version' = int #1
@@ -27,14 +27,14 @@ header:
 'index minor version' = int #index version, between 0 and 2
 'remainder' = 32 bytes #what remains of the header
 
-subfile: #aka entries
+entry:
 'type': int #entry type
 'group': int #entry group
 'instance': int #entry instance
 'resource': int #entry resource, only exists if the index minor version is 2
 'content' = BytesIO #file-like object stored in memory containing the entry itself
 'compressed' = bool #indicates whether the entry is compressed or not
-'name' = str #name of subfile
+'name' = str #name of entry
 """
 
 if sys.platform != 'win32':
@@ -238,15 +238,15 @@ def search_file(file, bytes_sequence, n=1):
         raise ValueError('The n argument of search_file should be larger than zero')
         
     content = read_all(file)
-    start = content.find(bytes_sequence, 0)
+    location = content.find(bytes_sequence, 0)
     
     for i in range(1, n):
-        start = content.find(bytes_sequence, start + 1)
+        location = content.find(bytes_sequence, location + 1)
         
-        if start == -1:
+        if location == -1:
             break
             
-    return start
+    return location
     
 def get_size(file):
     current_position = file.tell()
@@ -281,7 +281,7 @@ def create_package():
     for i in range(32):
         header['remainder'] += b'\x00'
     
-    return {'header': header, 'subfiles': []}
+    return {'header': header, 'entries': []}
     
 def read_package(file_path):
     with open(file_path, 'rb') as fs:
@@ -309,29 +309,29 @@ def read_package(file_path):
     header['remainder'] = file.read(32)
     
     #read index
-    subfiles = []
+    entries = []
     
     file.seek(header['index location'])
     for i in range(header['index entry count']):
-        subfile = {}
+        entry = {}
         
         #using int.from_bytes and file.read instead of read_int to avoid the function call overhead
-        subfile['type'] = int.from_bytes(file.read(4), 'little')
-        subfile['group'] = int.from_bytes(file.read(4), 'little')
-        subfile['instance'] = int.from_bytes(file.read(4), 'little')
+        entry['type'] = int.from_bytes(file.read(4), 'little')
+        entry['group'] = int.from_bytes(file.read(4), 'little')
+        entry['instance'] = int.from_bytes(file.read(4), 'little')
         
         if header['index minor version'] == 2:
-            subfile['resource'] = int.from_bytes(file.read(4), 'little')
+            entry['resource'] = int.from_bytes(file.read(4), 'little')
             
         location = int.from_bytes(file.read(4), 'little')
         size = int.from_bytes(file.read(4), 'little')
         
         position = file.tell()
         file.seek(location)
-        subfile['content'] = BytesIO(file.read(size))
+        entry['content'] = BytesIO(file.read(size))
         file.seek(position)
         
-        subfiles.append(subfile)
+        entries.append(entry)
         
     #make list of index entries
     #the entries list is for checking if the file is compressed later, just for increasing execution speed
@@ -351,11 +351,11 @@ def read_package(file_path):
     #read CLST
     #using a set for speed
     clst_entries = set()
-    results = search(subfiles, 0xE86B1EEF, get_first=True)
+    results = search(entries, 0xE86B1EEF, get_first=True)
     
     if len(results) > 0:
         i = results[0]
-        clst = subfiles[i]
+        clst = entries[i]
         file_size = get_size(clst['content'])
         
         if header['index minor version'] == 2:
@@ -379,43 +379,43 @@ def read_package(file_path):
         clst['content'].seek(0)
     
     #check if compressed
-    for index_entry, subfile in zip(index_entries, subfiles):
-        subfile['compressed'] = False
+    for index_entry, entry in zip(index_entries, entries):
+        entry['compressed'] = False
         
         if index_entry in clst_entries:
-            subfile['content'].seek(4)
+            entry['content'].seek(4)
             
             #entries can be in the CLST file even if they're not compressed
             #so a second check for compression would be good
-            if subfile['content'].read(2) == b'\x10\xfb':
-                subfile['compressed'] = True
+            if entry['content'].read(2) == b'\x10\xfb':
+                entry['compressed'] = True
                 
-            subfile['content'].seek(0)
+            entry['content'].seek(0)
             
     #read file names
-    for subfile in subfiles:
+    for entry in entries:
         try:
-            subfile['name'] = read_file_name(subfile)
+            entry['name'] = read_file_name(entry)
         except CompressionError:
-            subfile['name'] = ''
+            entry['name'] = ''
         
-    return {'header': header, 'subfiles': subfiles} 
+    return {'header': header, 'entries': entries} 
     
 def write_package(file_path, package):
     header = package['header']
-    subfiles = package['subfiles']
+    entries = package['entries']
     
     #update file names
-    #for subfile in subfiles:
+    #for entry in entries:
     #try:
-    #    write_file_name(subfile)
+    #    write_file_name(entry)
     #except CompressionError:
     #    pass
     
     #use index minor version 2?
     if header['index minor version'] != 2:
-        for subfile in subfiles:
-            if 'resource' in subfile and subfile['resource'] != 0:
+        for entry in entries:
+            if 'resource' in entry:
                 header['index minor version'] = 2
                 break
                 
@@ -443,11 +443,11 @@ def write_package(file_path, package):
         file.write(header['remainder'])
         
         #make CLST
-        results = search(subfiles, 0xE86B1EEF, get_first=True)
-        compressed_files = [subfile for subfile in subfiles if subfile['compressed']]
+        results = search(entries, 0xE86B1EEF, get_first=True)
+        compressed_files = [entry for entry in entries if entry['compressed']]
         
         if len(results) > 0:
-            subfiles.pop(results[0])
+            entries.pop(results[0])
             
         if len(compressed_files) > 0:
             clst = {}
@@ -476,34 +476,34 @@ def write_package(file_path, package):
                 uncompressed_size = read_int(compressed_file['content'], 3, 'big')
                 write_int(clst['content'], uncompressed_size, 4)
                 
-            subfiles.append(clst)
+            entries.append(clst)
             
-        #write subfiles
-        for subfile in subfiles:
+        #write entries
+        for entry in entries:
             #get new location to put in the index later
-            subfile['location'] = file.tell()
+            entry['location'] = file.tell()
             
-            file.write(read_all(subfile['content']))
+            file.write(read_all(entry['content']))
             
             #get new file size to put in the index later
-            subfile['size'] = file.tell() - subfile['location']
+            entry['size'] = file.tell() - entry['location']
             
         #write index
         index_start = file.tell()
         
-        for subfile in subfiles:
-            write_int(file, subfile['type'], 4)
-            write_int(file, subfile['group'], 4)
-            write_int(file, subfile['instance'], 4)
+        for entry in entries:
+            write_int(file, entry['type'], 4)
+            write_int(file, entry['group'], 4)
+            write_int(file, entry['instance'], 4)
             
             if header['index minor version'] == 2:
-                if 'resource' in subfile:
-                    write_int(file, subfile['resource'], 4)
+                if 'resource' in entry:
+                    write_int(file, entry['resource'], 4)
                 else:
                     write_int(file, 0, 4)
                     
-            write_int(file, subfile['location'], 4)
-            write_int(file, subfile['size'], 4)
+            write_int(file, entry['location'], 4)
+            write_int(file, entry['size'], 4)
             
         index_end = file.tell()
         
@@ -511,7 +511,7 @@ def write_package(file_path, package):
         
         #update header index info, clear holes index info
         file.seek(36)
-        write_int(file, len(subfiles), 4) #index entry count
+        write_int(file, len(entries), 4) #index entry count
         write_int(file, index_start, 4) #index location
         write_int(file, index_end - index_start, 4) #index size
         write_int(file, 0, 12) #hole index entries
@@ -520,7 +520,7 @@ def write_package(file_path, package):
 def copy_package(package):
     package_copy = {}
     package_copy['header'] = copy_header(package['header'])
-    package_copy['subfiles'] = [copy_subfile(subfile) for subfile in package['subfiles']]
+    package_copy['entries'] = [copy_entry(entry) for entry in package['entries']]
     
     return package_copy
     
@@ -531,87 +531,104 @@ def copy_header(header):
         
     return header_copy
     
-def copy_subfile(subfile):
-    subfile_copy = {}
-    subfile_copy['type'] = subfile['type']
-    subfile_copy['group'] = subfile['group']
-    subfile_copy['instance'] = subfile['instance']
+def create_entry(type_id, group_id, instance_id, resource_id=None, name='', content=b'', compressed=False):
+    entry = {}
+    entry['type'] = type_id
+    entry['group'] = group_id
+    entry['instance'] = instance_id
     
-    if 'resource' in subfile:
-        subfile_copy['resource'] = subfile['resource']
+    if resource_id is not None:
+        entry['resource'] = resource_id
         
-    subfile_copy['content'] = BytesIO(read_all(subfile['content']))
+    entry['name'] = name
+    entry['content'] = BytesIO(content)
+    entry['compressed'] = compressed
     
-    subfile_copy['compressed'] = subfile['compressed']
+    return entry
     
-    return subfile_copy
+def copy_entry(entry):
+    entry_copy = {}
+    entry_copy['type'] = entry['type']
+    entry_copy['group'] = entry['group']
+    entry_copy['instance'] = entry['instance']
+    
+    if 'resource' in entry:
+        entry_copy['resource'] = entry['resource']
+        
+    current_position = entry['content'].tell()
+    entry_copy['content'] = BytesIO(read_all(entry['content']))
+    entry['content'].seek(current_position)
+    
+    entry_copy['compressed'] = entry['compressed']
+    
+    return entry_copy
     
 #using C++ library from moreawesomethanyou   
-def compress(subfile):
-    if subfile['compressed'] or subfile['type'] == 0xE86B1EEF:
-        return subfile
+def compress(entry):
+    if entry['compressed'] or entry['type'] == 0xE86B1EEF:
+        return entry
         
     else:
-        src = read_all(subfile['content'])
+        src = read_all(entry['content'])
         src_len = len(src)
         dst = ctypes.create_string_buffer(src_len)
         
         dst_len = clib.try_compress(src, src_len, dst)
         
         if dst_len > 0:
-            write_all(subfile['content'], dst.raw[:dst_len])
-            subfile['compressed'] = True
+            write_all(entry['content'], dst.raw[:dst_len])
+            entry['compressed'] = True
             
-            return subfile
+            return entry
             
         else:
             raise CompressionError('Could not compress the file')
             
 #using C++ library from moreawesomethanyou 
-def decompress(subfile):
-    if subfile['compressed']:
-        subfile['content'].seek(0)
-        compressed_size = read_int(subfile['content'], 4)
-        subfile['content'].seek(6)
-        uncompressed_size = read_int(subfile['content'], 3, 'big')
+def decompress(entry):
+    if entry['compressed']:
+        src = read_all(entry['content'])
+        compressed_size = len(src)
         
-        src = read_all(subfile['content'])
+        entry['content'].seek(6)
+        uncompressed_size = read_int(entry['content'], 3, 'big')
+        
         dst = ctypes.create_string_buffer(uncompressed_size)
-        
         success = clib.decompress(src, compressed_size, dst, uncompressed_size, False)
         
+        entry['content'].seek(0)
+        
         if success:
-            write_all(subfile['content'], dst.raw)
-            subfile['compressed'] = False
+            write_all(entry['content'], dst.raw)
+            entry['compressed'] = False
             
-            return subfile
+            return entry
             
         else:
             raise CompressionError('Could not decompress the file')
             
     else:
-        return subfile
+        return entry
         
-def partial_decompress(subfile, size=-1):
-    if subfile['compressed']:
-        src = read_all(subfile['content'])  
-        compressed_size = get_size(subfile['content'])
+def partial_decompress(entry, size=-1):
+    if entry['compressed']:
+        src = read_all(entry['content'])  
+        compressed_size = len(src)
         
-        subfile['content'].seek(6)
-        uncompressed_size = read_int(subfile['content'], 3, 'big')
+        entry['content'].seek(6)
+        uncompressed_size = read_int(entry['content'], 3, 'big')
         
         if size == -1 or size >= uncompressed_size:
-            dst = ctypes.create_string_buffer(uncompressed_size)
+            size = uncompressed_size
             truncate = False
             
         else:
-            dst = ctypes.create_string_buffer(size)
-            uncompressed_size = size
             truncate = True
             
-        success = clib.decompress(src, compressed_size, dst, uncompressed_size, truncate)
+        dst = ctypes.create_string_buffer(size)
+        success = clib.decompress(src, compressed_size, dst, size, truncate)
         
-        subfile['content'].seek(0)
+        entry['content'].seek(0)
         
         if success:
             return BytesIO(dst.raw)
@@ -620,29 +637,29 @@ def partial_decompress(subfile, size=-1):
             
     else:
         #if size is -1, then read(size) will read the whole file
-        subfile['content'].seek(0)
-        dst = subfile['content'].read(size)
-        subfile['content'].seek(0)
+        entry['content'].seek(0)
+        dst = entry['content'].read(size)
+        entry['content'].seek(0)
         return BytesIO(dst)
         
-def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
+def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
     file_name = file_name.lower()
     
     indices = []
-    for i, subfile in enumerate(subfiles):
-        if type_id != -1 and type_id != subfile['type']:
+    for i, entry in enumerate(entries):
+        if type_id != -1 and type_id != entry['type']:
             continue
             
-        if group_id != -1 and group_id != subfile['group']:
+        if group_id != -1 and group_id != entry['group']:
             continue
             
-        if instance_id != -1 and instance_id != subfile['instance']:
+        if instance_id != -1 and instance_id != entry['instance']:
             continue
             
-        if resource_id != -1 and resource_id != subfile['resource']:
+        if resource_id != -1 and resource_id != entry['resource']:
             continue
             
-        if file_name != '' and file_name not in subfile['name'].lower():
+        if file_name != '' and file_name not in entry['name'].lower():
             continue
             
         indices.append(i)
@@ -653,7 +670,7 @@ def search(subfiles, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, fi
     return indices
     
 #for faster searching
-def build_index(subfiles):
+def build_index(entries):
     index = {}
     index['types'] = {}
     index['groups'] = {}
@@ -665,29 +682,29 @@ def build_index(subfiles):
     for c in string.printable:
         index['names index'][c] = set()
         
-    for i, subfile in enumerate(subfiles):
-        if subfile['type'] not in index['types']:
-            index['types'][subfile['type']] = set()
+    for i, entry in enumerate(entries):
+        if entry['type'] not in index['types']:
+            index['types'][entry['type']] = set()
             
-        index['types'][subfile['type']].add(i)
+        index['types'][entry['type']].add(i)
         
-        if subfile['group'] not in index['groups']:
-            index['groups'][subfile['group']] = set()
+        if entry['group'] not in index['groups']:
+            index['groups'][entry['group']] = set()
             
-        index['groups'][subfile['group']].add(i)
+        index['groups'][entry['group']].add(i)
             
-        if subfile['instance'] not in index['instances']:
-            index['instances'][subfile['instance']] = set()
+        if entry['instance'] not in index['instances']:
+            index['instances'][entry['instance']] = set()
             
-        index['instances'][subfile['instance']].add(i)
+        index['instances'][entry['instance']].add(i)
             
-        if 'resource' in subfile:
-            if subfile['resource'] not in index['resources']:
-                index['resources'][subfile['resource']] = set()
+        if 'resource' in entry:
+            if entry['resource'] not in index['resources']:
+                index['resources'][entry['resource']] = set()
                 
-            index['resources'][subfile['resource']].add(i)
+            index['resources'][entry['resource']].add(i)
             
-        name = subfile['name'].lower()
+        name = entry['name'].lower()
         index['names list'].append(name)
         
         if name != '':
@@ -727,22 +744,22 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1,
             
     return list(results)
     
-def print_tgi(subfile):
-    if subfile['name'] != '':
+def print_tgi(entry):
+    if entry['name'] != '':
         print()
-        print(subfile['name'])
+        print(entry['name'])
         
-    if 'resource' in subfile:
-        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance'], subfile['resource']))
+    if 'resource' in entry:
+        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(entry['type'], entry['group'], entry['instance'], entry['resource']))
     else:
-        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}'.format(subfile['type'], subfile['group'], subfile['instance']))
+        print('Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}'.format(entry['type'], entry['group'], entry['instance']))
         
-def read_file_name(subfile):
-    if subfile['type'] in named_types:
-        return partial_decompress(subfile, 64).read().rstrip(b'\x00').decode('utf-8')
+def read_file_name(entry):
+    if entry['type'] in named_types:
+        return partial_decompress(entry, 64).read().rstrip(b'\x00').decode('utf-8')
         
-    elif subfile['type'] in named_rcol_types:
-        file = partial_decompress(subfile, 255)
+    elif entry['type'] in named_rcol_types:
+        file = partial_decompress(entry, 255)
         location = search_file(file, b'cSGResource')
         
         if location == -1:
@@ -751,8 +768,8 @@ def read_file_name(subfile):
             file.seek(location + 19)
             return read_7bstr(file)
             
-    elif subfile['type'] in named_cpf_types:
-        file = partial_decompress(subfile)
+    elif entry['type'] in named_cpf_types:
+        file = partial_decompress(entry)
         location = search_file(file, b'name')
         
         if location == -1:
@@ -761,72 +778,72 @@ def read_file_name(subfile):
             file.seek(location + 4)
             return read_pstr(file, 4)
             
-    elif subfile['type'] == 0x46574156:
-        file = partial_decompress(subfile)
+    elif entry['type'] == 0x46574156:
+        file = partial_decompress(entry)
         file.seek(64)
         return file.read().rstrip(b'\x00').decode('utf-8')
         
     else:
         return ''
         
-def write_file_name(subfile):
+def write_file_name(entry):
     was_compressed = False
     
-    if subfile['type'] in named_types:
-        if subfile['compressed']:
-            decompress(subfile)
+    if entry['type'] in named_types:
+        if entry['compressed']:
+            decompress(entry)
             was_compressed = True
             
-            if len(subfile) <= 64:
-                subfile['content'].seek(0)
-                write_str(subfile['content'], subfile['name'])
-                write_int(subfile['content'], 0, 64 - len(subfile['name']))
-                subfile['content'].seek(0)
+            if len(entry) <= 64:
+                entry['content'].seek(0)
+                write_str(entry['content'], entry['name'])
+                write_int(entry['content'], 0, 64 - len(entry['name']))
+                entry['content'].seek(0)
             else:
-                raise NameError("file name '{}' is longer than expected".format(subfile['name']))
+                raise NameError("file name '{}' is longer than expected".format(entry['name']))
                 
-    elif subfile['type'] in named_rcol_types:
-        if subfile['compressed']:
-            decompress(subfile)
+    elif entry['type'] in named_rcol_types:
+        if entry['compressed']:
+            decompress(entry)
             was_compressed = True
             
-        location = search_file(subfile['content'], b'cSGResource')
+        location = search_file(entry['content'], b'cSGResource')
         
         if location != -1:
             location += 19
-            subfile['content'].seek(location)
-            length = len(read_7bstr(subfile['content'])) + 1
+            entry['content'].seek(location)
+            length = len(read_7bstr(entry['content'])) + 1
             
             if length > 127 + 1:
                 length += 1
                 
-            overwrite(subfile['content'], str2bstr(subfile['name']), location, length) 
-            subfile['content'].seek(0)
+            overwrite(entry['content'], str2bstr(entry['name']), location, length) 
+            entry['content'].seek(0)
             
-    elif subfile['type'] in named_cpf_types:
-        if subfile['compressed']:
-            decompress(subfile)
+    elif entry['type'] in named_cpf_types:
+        if entry['compressed']:
+            decompress(entry)
             was_compressed = True
             
-        location = search_file(subfile['content'], b'name')
+        location = search_file(entry['content'], b'name')
         
         if location != -1:
             location += 4
-            subfile['content'].seek(location)
-            length = read_int(subfile['content'], 4) + 4
+            entry['content'].seek(location)
+            length = read_int(entry['content'], 4) + 4
             
-            overwrite(subfile['content'], str2pstr(subfile['name'], 4), location, length) 
-            subfile['content'].seek(0)
+            overwrite(entry['content'], str2pstr(entry['name'], 4), location, length) 
+            entry['content'].seek(0)
             
-    elif subfile['type'] == 0x46574156:
-        if subfile['compressed']:
-            decompress(subfile)
+    elif entry['type'] == 0x46574156:
+        if entry['compressed']:
+            decompress(entry)
             was_compressed = True
             
-        subfile['content'].seek(64)
-        write_str(subfile['content'], subfile['name'], null_term=True)
-        subfile['content'].truncate()
-        subfile['content'].seek(0)
+        entry['content'].seek(64)
+        write_str(entry['content'], entry['name'], null_term=True)
+        entry['content'].truncate()
+        entry['content'].seek(0)
         
     if was_compressed:
-        compress(subfile)
+        compress(entry)
