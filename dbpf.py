@@ -225,8 +225,11 @@ def write_all(file, buffer):
     file.seek(0)
     return length
     
-def overwrite(file, bytes_sequence, start, size=0):
-    file.seek(start + size)
+def overwrite(file, bytes_sequence, start=-1, size=0):
+    if start == -1:
+        start = file.tell()
+        
+    file.seek(start + size)    
     buffer = file.read()
     file.seek(start)
     file.write(bytes_sequence)

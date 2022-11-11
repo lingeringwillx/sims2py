@@ -111,15 +111,15 @@ Writes *string* into *file* in the 7-bit string format.
 
 **read_all(file)**
 
-Reads all of the content of *file*.
+Reads all of the content of *file*. The function expects a *BytesIO* file.
 
 **write_all(file, buffer)**
 
 Overwrites the entire file with bytes object *buffer*.
 
-**overwrite(file, bytes_sequence, start, size=0)**
+**overwrite(file, bytes_sequence, start=-1, size=0)**
 
-Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place.
+Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place. If *start* is unspecified then the function will start from the current position in *file*.
 
 **search_file(file, bytes_sequence, start=-1, n=1)**
 
