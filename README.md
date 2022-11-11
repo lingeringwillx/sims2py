@@ -199,7 +199,7 @@ Writes *entry['name']* to *entry['content']*. Only works with supported file typ
 
 **unpack_str(file)**
 
-Converts the files that use the [STR](#STR-dict) format into a dictionary. *file* needs to decompressed before passing it to the function. Throws an *NotSupportedError* if an STR resource with an unsupported format code is passed to the function. Currently only format codes 0xFFFD and 0xFFFF are supported. Other formats don't show up often in the game's code. The function does not unpack the description accompanying each string in the files.
+Converts the files that use the [STR](#STR-dict) format into a dictionary. *file* needs to decompressed before passing it to the function. Throws a *NotSupportedError* if a STR resource with an unsupported format code is passed to the function. Currently only format codes 0xFFFD and 0xFFFF are supported. Other formats don't show up often in the game's code. The function does not unpack the description accompanying each string in the files.
 
 **pack_str(content)**
 
@@ -283,7 +283,7 @@ STR dictionaries created by the *unpack_str* function contain the following:
 
 **'format code'** (int): The format code of the entry.
 
-**'languages'** (dict of lists of strs): Dictionary containing a list of strings for each language, with the language's code being the key to the dictionary. Use the key *1* for the default English strings.
+**'languages'** (dict of lists of strs): Dictionary containing a list of strings for each language, with the language's code being the key to the dictionary. Use the key 1 for the default English strings.
 
 -----
 
