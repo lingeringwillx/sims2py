@@ -46,6 +46,7 @@ if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] 
 named_types = {0x42434F4E, 0x42484156, 0x4E524546, 0x4F424A44, 0x53545223, 0x54544142, 0x54544173, 0x424D505F, 0x44475250, 0x534C4F54, 0x53505232}
 named_rcol_types = {0xFB00791E, 0x4D51F042, 0xE519C933, 0xAC4F8687, 0x7BA3838C, 0xC9C81B9B, 0xC9C81BA3, 0xC9C81BA9, 0xC9C81BAD, 0xED534136, 0xFC6EB1F7, 0x49596978, 0x1C4A276C}
 named_cpf_types = {0x2C1FD8A1, 0x0C1FE246, 0xEBCF3E27}
+lua_types = {0x9012468A, 0x9012468B}
 
 is_64bit = sys.maxsize > 2 ** 32
 
@@ -58,7 +59,8 @@ clib.decompress.restype = ctypes.c_bool
 
 class RepeatKeyError(Exception): pass
 class CompressionError(Exception): pass
-class NameError(Exception): pass
+class NameLengthError(Exception): pass
+class NotSupportedError(Exception): pass
 
 def bytes2int(b, endian='little', signed=False):
     return int.from_bytes(b, endian, signed=signed)
@@ -155,16 +157,18 @@ def write_float(file, number, endian='little'):
         
 def read_str(file, length=0):
     if length > 0:
-        return file.read(length).decode('utf-8')
-    else:
-        content = b''
-        buff = file.read(1)
+        return file.read(length).decode('utf-8', errors='ignore')
         
-        while buff != b'\x00':
-            content += buff
-            buff = file.read(1)
-            
-        return content.decode('utf-8')
+    else:
+        content = file.getvalue()
+        start = file.tell()
+        end = content.find(b'\x00', start)
+        
+        if end == -1:
+            raise EOFError('Null termination not found')
+        
+        file.seek(end + 1)
+        return content[start:end].decode('utf-8', errors='ignore')
         
 def write_str(file, string, null_term=False):
     length = file.write(string.encode('utf-8'))
@@ -212,10 +216,7 @@ def write_7bstr(file, string):
     return file.write(string.encode('utf-8')) + i
     
 def read_all(file):
-    file.seek(0)
-    buffer = file.read()
-    file.seek(0)
-    return buffer
+    return file.getvalue()
     
 def write_all(file, buffer):
     file.seek(0)
@@ -233,13 +234,12 @@ def overwrite(file, bytes_sequence, start, size=0):
     file.truncate()
     file.seek(0)
     
-def search_file(file, bytes_sequence, n=1):
-    if n < 1:
-        raise ValueError('The n argument of search_file should be larger than zero')
+def search_file(file, bytes_sequence, start=-1, n=1):
+    if start == -1:
+        start = file.tell()
         
-    content = read_all(file)
-    location = content.find(bytes_sequence, 0)
-    
+    content = file.getvalue()
+    location = content.find(bytes_sequence, start)
     for i in range(1, n):
         location = content.find(bytes_sequence, location + 1)
         
@@ -401,7 +401,7 @@ def read_package(file_path):
         
     return {'header': header, 'entries': entries} 
     
-def write_package(file_path, package):
+def write_package(package, file_path):
     header = package['header']
     entries = package['entries']
     
@@ -746,7 +746,6 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1,
     
 def print_tgi(entry):
     if entry['name'] != '':
-        print()
         print(entry['name'])
         
     if 'resource' in entry:
@@ -778,6 +777,11 @@ def read_file_name(entry):
             file.seek(location + 4)
             return read_pstr(file, 4)
             
+    elif entry['type'] in lua_types:
+        file = partial_decompress(entry, 255)
+        file.seek(4)
+        return read_pstr(file, 4)        
+        
     elif entry['type'] == 0x46574156:
         file = partial_decompress(entry)
         file.seek(64)
@@ -800,7 +804,7 @@ def write_file_name(entry):
                 write_int(entry['content'], 0, 64 - len(entry['name']))
                 entry['content'].seek(0)
             else:
-                raise NameError("file name '{}' is longer than expected".format(entry['name']))
+                raise NameLengthError("file name '{}' is longer than expected".format(entry['name']))
                 
     elif entry['type'] in named_rcol_types:
         if entry['compressed']:
@@ -835,6 +839,17 @@ def write_file_name(entry):
             overwrite(entry['content'], str2pstr(entry['name'], 4), location, length) 
             entry['content'].seek(0)
             
+    elif entry['type'] in lua_types:
+        if entry['compressed']:
+            decompress(entry)
+            was_compressed = True
+            
+        entry['content'].seek(4)
+        length = read_int(entry['content'], 4) + 4
+        
+        overwrite(entry['content'], str2pstr(entry['name'], 4), 4, length) 
+        entry['content'].seek(0)
+        
     elif entry['type'] == 0x46574156:
         if entry['compressed']:
             decompress(entry)

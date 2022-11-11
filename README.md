@@ -83,7 +83,7 @@ Converts *number* into a bytes object with endian *endian*, then writes it into 
 
 **read_str(file, length=0)**
 
-Reads a string from *file*. If the length is larger than zero, then it reads *length* bytes from *file* and returns the string. Otherwise, it keeps reading until it reaches a null termination and returns the string.
+Reads a string from *file*. If the length is larger than zero, then it reads *length* bytes from *file* and returns the string. Otherwise, it keeps reading until it reaches a null termination and returns the string. The function expects a *BytesIO* file.
 
 **write_str(file, string, null_term=False)**
 
@@ -121,9 +121,9 @@ Overwrites the entire file with bytes object *buffer*.
 
 Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place.
 
-**search_file(file, bytes_sequence, n=1)**
+**search_file(file, bytes_sequence, start=-1, n=1)**
 
-Searches *file* for *bytes_sequence* and returns the location in which it's *nth* occurrence can be found. Returns -1 if *bytes_sequence* is not found.
+Searches *file* for *bytes_sequence*. If *start* is specified then the file will be searched from *start*, otherwise it will be searched from it's current position. Returns the location in which the *nth* occurrence of *bytes_sequence* can be found, returns -1 if it's not found. The function expects a *BytesIO* file.
 
 **get_size(file)**
 
@@ -141,7 +141,7 @@ Creates a dictionary containing the data necessary to make an empty package file
 
 Reads a package file from the provided *file_path* and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
 
-**write_package(file_path, package)**
+**write_package(package, file_path)**
 
 Converts the dictionary *package* into a package file and writes it to a file with the provided *file_path*.
 
@@ -197,13 +197,21 @@ Reads the file name of *entry* for supported file types. Returns the name of the
 
 Writes *entry['name']* to *entry['content']*. Only works with supported file types.
 
+**unpack_str(file)**
+
+Converts the files that use the [STR](#STR-dict) format into a dictionary. *file* needs to decompressed before passing it to the function. Throws an *NotSupportedError* if an STR resource with an unsupported format code is passed to the function. Currently only format codes 0xFFFD and 0xFFFF are supported. Other formats don't show up often in the game's code. The function does not unpack the description accompanying each string in the files.
+
+**pack_str(content)**
+
+Converts dictionaries created by the *unpack_str* function into a BytesIO file. Returns the file.
+
 **unpack_cpf(file)**
 
-Converts the files that use the [CPF](#cpf-dict) file format into a dictionary. *file* needs to decompressed before passing it to the function.
+Converts the files that use the [CPF](#CPF-dict) format into a dictionary. *file* needs to decompressed before passing it to the function.
 
 **pack_cpf(content)**
 
-Converts dictionaries created by the *unpack_cpf* function into a BytesIO file. Returns the file
+Converts dictionaries created by the *unpack_cpf* function into a BytesIO file. Returns the file.
 
 ## Dictionaries
 Structure of dictionaries created by this script:
@@ -268,7 +276,18 @@ Each element in this list contains the following:
 
 -----
 
-#### cpf (dict)
+#### STR (dict)
+STR dictionaries created by the *unpack_str* function contain the following:
+
+**'file name'** (str): The name of the entry
+
+**'format code'** (int): The format code of the entry.
+
+**'languages'** (dict of lists of strs): Dictionary containing a list of strings for each language, with the language's code being the key to the dictionary. Use the key *1* for the default English strings.
+
+-----
+
+#### CPF (dict)
 CPF dictionaries created by the *unpack_cpf* function contain the following:
 
 **'version'** (int)
