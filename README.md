@@ -86,7 +86,9 @@ Creates a copy of the package and returns it.
 
 Creates a Header object containing the data of a package file's header.
 
-**copy()**: creates a copy of the header and returns it.
+**copy()**:
+
+Creates a copy of the header and returns it.
 
 ## Entry
 
