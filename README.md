@@ -46,6 +46,8 @@ Creates a copy of the package and returns it.
 
 ## Header
 
+### Attributes
+
 **major_version** (int): Equal to 1.
 
 **minor_version** (int): Equal to 1.
@@ -80,11 +82,15 @@ Creates a copy of the package and returns it.
 
 ### Methods
 
-**copy**: creates a copy of the header and returns it.
+**Header()**:
+
+Creates a Header object containing the data of a package file's header.
+
+**copy()**: creates a copy of the header and returns it.
 
 ## Entry
 
-Inherits the methods from [MemoryIO](#MemoryIO)
+Inherits from [MemoryIO](#MemoryIO).
 
 ### Attributes
 
@@ -98,13 +104,13 @@ Inherits the methods from [MemoryIO](#MemoryIO)
 
 **compressed** (bool): Indicates whether the entry is compressed or not.
 
-**name** (str): Contains the name of the entry for supported entry types. Keep in mind that changing this value will not change the actual name in the entry's content. To write the new name to *content*, use the *write_name* function.
+**name** (str): Contains the name of the entry for supported entry types. Keep in mind that changing this value will not change the actual name in the entry's content. To apply the new name to the entry, use the *write_name* function.
 
 ### Methods
 
 **Entry(type_id, group_id, instance_id, resource_id=None, name='', content=MemoryIO(), compressed=False)**
 
-creates an entry containing the provided arguments.
+Creates an entry containing the provided arguments.
 
 **copy()**
 
@@ -114,7 +120,7 @@ Creates a copy of *entry* and returns it.
 
 Reads the name of the entry from it's content and writes it to *name*. Returns the name of the entry if the entry's type is supported, otherwise returns an empty string.
 
-**write_name(entry)**
+**write_name()**
 
 Writes the name of the entry in the *name* attribute to it's content. Only works with supported entry types.
 
@@ -178,7 +184,7 @@ Same as *write_str* but appends the value to the file at the current position in
 
 **overwrite_str(string, length=-1, null_term=False)**
 
-Deletes the string existing at the current location, then writes string in it's place. if *length* is specified then the function will delete *length* bytes, otherwise it will delete all bytes until it encounters a null termination. if *null_term* is set to True, then a null termination is also written to the file.
+Deletes the string existing at the current location, then writes *string* in it's place. if *length* is specified then the function will delete *length* bytes, otherwise it will delete all bytes until it encounters a null termination. if *null_term* is set to True, then a null termination is also written to the file.
 
 **read_pstr(numbytes)**
 
@@ -190,7 +196,7 @@ Writes *string* to the file as a Pascal string. *numbytes* is used to specify ho
 
 **overwrite_pstr(string, numbytes)**
 
-Deletes the existing Pascal string at the current position and writes *string* as a Pascal string in it's place. *numbytes* is used to specify how many bytes are used for the string's length.
+Deletes the existing Pascal string at the current position and writes *string* as a Pascal string in it's place. *numbytes* is used to specify how many bytes are used for the integer holding the string's length.
 
 **append_pstr(string, numbytes)**
 
@@ -214,7 +220,7 @@ Deletes the 7-bit string existing at the current location and writes *string* as
 
 **delete(length)**
 
-Deletes *length* bytes from the file. Unlike other functions, this function reads backwards.
+Deletes *length* bytes from the file starting from *current position - length* to *current position*.
 
 **find(bytes_sequence, n=1)**
 
@@ -252,7 +258,7 @@ Converts the files that use the [STR](#STR-dict) format into a dictionary. *file
 
 **pack_str(content)**
 
-Converts dictionaries created by the *unpack_str* function into a BytesIO file. Returns the file.
+Converts dictionaries created by the *unpack_str* function into a MemoryIO file and returns the file.
 
 **unpack_cpf(file)**
 
@@ -260,7 +266,7 @@ Converts the files that use the [CPF](#CPF-dict) format into a dictionary. *file
 
 **pack_cpf(content)**
 
-Converts dictionaries created by the *unpack_cpf* function into a BytesIO file. Returns the file.
+Converts dictionaries created by the *unpack_cpf* function into a MemoryIO file and returns the file.
 
 # Dictionaries
 
