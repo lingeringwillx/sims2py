@@ -70,15 +70,15 @@ Creates a copy of the package and returns it.
 
 **index_size** (int): The length of the index.
 
-**'hole_index_entry_count'** (int): The number of holes in the file.
+**hole_index_entry_count** (int): The number of holes in the file.
 
-**'hole_index_location'** (int): The location of the holes index in the file.
+**hole_index_location** (int): The location of the holes index in the file.
 
-**'hole_index_size'** (int): The length of the holes index.
+**hole_index_size** (int): The length of the holes index.
 
-**'index_minor_version'** (int): The index version, between 0 and 2.
+**index_minor_version** (int): The index version, between 0 and 2.
 
-**'remainder'** (bytes): What remains of the header.
+**remainder** (bytes): What remains of the header.
 
 ### Methods
 
