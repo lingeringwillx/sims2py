@@ -1,165 +1,226 @@
-## Purpose
+# Purpose
+
 1- To make it easier to access and read the game's data.
 
 2- To enable quick script editing of the game's files.
 
-## Getting Started
+# Getting Started
+
 **Requirements:** Requires Windows and Python 3.2 or higher.
 
 **Installation:** Download the build and place it in a folder named 'dbpf'. Outside the folder, create a python file and write `import dbpf` to import the library.
 
-**Compilation:**
-If you want to compile the C library yourself, you will need Mingw-w64 to be installed in your system.
+**Compilation:** If you want to compile the C library yourself, you will need Mingw-w64 to be installed in your system.
 
 To compile the library, run the compile.bat file.
 
-## Functions
+# Objects
 
-List of functions provided by the library:
+## Package
 
------
+Creates an object resembling the structure of a *.package* file.
 
-### Type Conversions
+### Attributes
 
-**bytes2int(b, endian='little', signed=False)**
+**header** (Header): Contains the [header](#Header)
 
-Converts bytes object *b* to an integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+**entries** (list\[Entry]): Contains instances of [Entry](#Entry).
 
-**int2bytes(n, numbytes, endian='little', signed=False)**
+### Methods
 
-Converts integer *n* to a bytes object. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+**Package()**
 
-**bytes2float(b, endian='little')**
+Creates a Package object containing the data required to make an empty package file.
 
-Converts bytes object *b* to a float. The endian can be specified with the *endian* argument.
+**Package.unpack(file_path)**
 
-**float2bytes(n, endian='little')**
+Static method. Reads a package file from the provided *file_path* and returns a *Package* object containing its data.
 
-Converts float *n* to a bytes object. The endian can be specified with the *endian* argument.
+**pack_into(file_path)**
 
-**bytes2str(b)**
+Converts the Package object into a package file and writes it to a file with the provided *file_path*.
 
-Converts *b* to a string.
+**copy()**
 
-**str2bytes(s, null_term=False)**
+Creates a copy of the package and returns it.
 
-Converts string *s* to a bytes object. if *null_term* is set to True, then a null termination will be appended to the end.
+## Header
 
-**pstr2str(b, numbytes)**
+**major_version** (int): Equal to 1.
 
-Converts a bytes object *b* in the pascal string format into a string. The number of bytes containing the string's length can be specified with *numbytes*. The function will read up to the length specified in the first *numbytes* and ignore the rest.
+**minor_version** (int): Equal to 1.
 
-**str2pstr(s, numbytes)**
+**major_user_version** (int): Equal to 0.
 
-convert string *s* into a bytes object in the pascal string format. The number of bytes that would contain the length of the string can be specified with *numbytes*.
+**minor_user_version** (int): Equal to 0.
 
-**bstr2str(b)**
+**flags** (int): Not known.
 
-Converts a bytes object *b* in the [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) format into a string. The function will read up to the length specified in the first few bytes and ignore the rest of the bytes object.
+**created_date** (int)
 
-**str2bstr(s)**
+**modified_date** (int)
 
-convert string *s* into a bytes object in the 7-bit string format.
+**index_major_version** (int): Equal to 7.
 
------
+**index_entry_count** (int): The number of entries in the file.
 
-### File IO
+**index_location** (int): The location of the file index.
 
-**read_int(file, numbytes, endian='little', signed=False)**
+**index_size** (int): The length of the index.
 
-Reads *numbytes* from *file* and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+**'hole_index_entry_count'** (int): The number of holes in the file.
 
-**write_int(file, number, numbytes, endian='little', signed=False)**
+**'hole_index_location'** (int): The location of the holes index in the file.
 
-Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into *file*. The *signed* argument is used to specify whether the integer is signed or not.
+**'hole_index_size'** (int): The length of the holes index.
 
-**read_float(file, endian='little')**
+**'index_minor_version'** (int): The index version, between 0 and 2.
 
-Reads the next 4 bytes from *file* and converts them into a float. The endian can be specified with the *endian* argument.
+**'remainder'** (bytes): What remains of the header.
 
-**write_float(file, number, endian='little')**
+### Methods
 
-Converts *number* into a bytes object with endian *endian*, then writes it into *file*.
+**copy**: creates a copy of the header and returns it.
 
-**read_str(file, length=0)**
+## Entry
 
-Reads a string from *file*. If the length is larger than zero, then it reads *length* bytes from *file* and returns the string. Otherwise, it keeps reading until it reaches a null termination and returns the string. The function expects a *BytesIO* file.
+Inherits the methods from [MemoryIO](#MemoryIO)
 
-**write_str(file, string, null_term=False)**
+### Attributes
 
-Writes *string* into *file*. if *null_term* is set to True, then a null termination is also written to the file.
+**type** (int): Entry type.
 
-**read_pstr(file, numbytes)**
+**group** (int): Entry group.
 
-Reads a Pascal string from *file* and returns it. *numbytes* indicates how many bytes are used for the string's length in *file*.
+**instance** (int): Entry instance.
 
-**write_pstr(file, string, numbytes)**
+**resource** (int): Entry resource, only exists if the *index minor version* of the *header* is 2.
 
-Writes *string* to *file* as a Pascal string. *numbytes* indicates how many bytes are to be used for the string's length in *file*.
+**compressed** (bool): Indicates whether the entry is compressed or not.
 
-**read_7bstr(file)**
+**name** (str): Contains the name of the entry for supported entry types. Keep in mind that changing this value will not change the actual name in the entry's content. To write the new name to *content*, use the *write_name* function.
 
-Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from *file* and returns it as a string object.
+### Methods
 
-**write_7bstr(file, string)**
-
-Writes *string* into *file* in the 7-bit string format.
-
------
-
-### File Utils
-
-**read_all(file)**
-
-Reads all of the content of *file*. The function expects a *BytesIO* file.
-
-**write_all(file, buffer)**
-
-Overwrites the entire file with bytes object *buffer*.
-
-**overwrite(file, bytes_sequence, start=-1, size=0)**
-
-Deletes the portion between *start* and *start + size* from *file*, and appends *bytes_sequence* in it's place. If *start* is unspecified then the function will start from the current position in *file*.
-
-**search_file(file, bytes_sequence, start=-1, n=1)**
-
-Searches *file* for *bytes_sequence*. If *start* is specified then the file will be searched from *start*, otherwise it will be searched from it's current position. Returns the location in which the *nth* occurrence of *bytes_sequence* can be found, returns -1 if it's not found. The function expects a *BytesIO* file.
-
-**get_size(file)**
-
-Returns the size/length of *file*
-
------
-
-### Package Utils
-
-**create_package()**
-
-Creates a dictionary containing the data necessary to make an empty package file.
-
-**read_package(file_path)**
-
-Reads a package file from the provided *file_path* and returns a dictionary containing its data. For information on the dictionary, check the [dictionaries](#dictionaries) section.
-
-**write_package(package, file_path)**
-
-Converts the dictionary *package* into a package file and writes it to a file with the provided *file_path*.
-
-**copy_package(package)**
-
-Creates a copy of *package* and returns it.
-
-**copy_header(header)**
-
-creates a copy of *header* and returns it.
-
-**create_entry(type_id, group_id, instance_id, resource_id=None, name='', content=b'', compressed=False)**
+**Entry(type_id, group_id, instance_id, resource_id=None, name='', content=MemoryIO(), compressed=False)**
 
 creates an entry containing the provided arguments.
 
-**copy_entry(entry)**
+**copy()**
 
-creates a copy of *entry* and returns it.
+Creates a copy of *entry* and returns it.
+
+**read_name()**
+
+Reads the name of the entry from it's content and writes it to *name*. Returns the name of the entry if the entry's type is supported, otherwise returns an empty string.
+
+**write_name(entry)**
+
+Writes the name of the entry in the *name* attribute to it's content. Only works with supported entry types.
+
+## MemoryIO
+
+File-like object stored in memory. Extends *io.BytesIO* from the standard library, which means that it has all of the basic methods of file-like objects, including *read*, *write*, *seek*, *tell*, and *truncate*.
+
+### Methods
+
+**__len__()**
+
+Returns the size/length of the file.
+
+**copy()**
+
+creates a copy of the object and returns it.
+
+**read_all()**
+
+Reads and returns all of the content of the file.
+
+**write_all(buffer)**
+
+Overwrites the entire file with bytes object *buffer*.
+
+**read_int(numbytes, endian='little', signed=False)**
+
+Reads *numbytes* bytes from the file and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+
+**write_int(number, numbytes, endian='little', signed=False)**
+
+Converts *number* into a bytes object with length *numbytes* and endian *endian*, then writes it into the file. The *signed* argument is used to specify whether the integer is signed or not.
+
+**append_int(number, numbytes, endian='little', signed=False)**
+
+Same as *write_int* but appends the value to the file at the current position instead of overwriting existing bytes.
+
+**read_float(endian='little')**
+
+Reads the next 4 bytes from the file and converts them into a float. The endian can be specified with the *endian* argument.
+
+**write_float(number, endian='little')**
+
+Converts *number* into a bytes object with endian *endian*, then writes it into the file.
+
+**append_float(number, endian='little')**
+
+Same as *write_float* but appends the value to the file at the current position instead of overwriting existing bytes.
+
+**read_str(length=0)**
+
+Reads a string from the file. If the length is larger than zero, then it reads *length* bytes from the file and returns the string. Otherwise, it keeps reading until it reaches a null termination and returns the string.
+
+**write_str(string, null_term=False)**
+
+Writes *string* into the file. if *null_term* is set to True, then a null termination is also written to the file.
+
+**append_str(string, null_term=False)**
+
+Same as *write_str* but appends the value to the file at the current position instead of overwriting existing bytes.
+
+**overwrite_str(string, length=-1, null_term=False)**
+
+Deletes the string existing at the current location, then writes string in it's place. if *length* is specified then the function will delete *length* bytes, otherwise it will delete all bytes until it encounters a null termination. if *null_term* is set to True, then a null termination is also written to the file.
+
+**read_pstr(numbytes)**
+
+Reads a Pascal string from the file and returns it. *numbytes* is used to specify how many bytes are used for the string's length in the file.
+
+**write_pstr(string, numbytes)**
+
+Writes *string* to the file as a Pascal string. *numbytes* is used to specify how many bytes are used for the string's length in the file.
+
+**overwrite_pstr(string, numbytes)**
+
+Deletes the existing Pascal string at the current position and writes *string* as a Pascal string in it's place. *numbytes* is used to specify how many bytes are used for the string's length.
+
+**append_pstr(string, numbytes)**
+
+Same as *write_pstr* but appends the value to the file at the current position instead of overwriting existing bytes.
+
+**read_7bstr()**
+
+Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from the file and returns it as a string object.
+
+**write_7bstr(string)**
+
+Writes *string* into the file in the 7-bit string format.
+
+**append_7bstr(string)**
+
+Same as *write_7bstr* but appends the value to the file at the current position instead of overwriting existing bytes.
+
+**overwrite_7bstr(string)**
+
+Deletes the 7-bit string existing at the current location and writes *string* as a 7-bit string in it's place.
+
+**delete(length)**
+
+Deletes *length* bytes from the file. Unlike other functions, this function reads backwards.
+
+**find(bytes_sequence, n=1)**
+
+Searches *file* for *bytes_sequence*. Returns the location in which the *nth* occurrence of *bytes_sequence* can be found, returns -1 if it's not found. Starts searching from the current position  in the buffer.
+
+# Functions
 
 **compress(entry)**
 
@@ -171,7 +232,7 @@ Decompresses the content of *entry*. If the content of *entry* is already decomp
 
 **partial_decompress(entry, size=-1)**
 
-Decompresses *entry* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a BytesIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
+Decompresses *entry* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a MemoryIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
 
 **search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
 
@@ -184,18 +245,6 @@ Returns an index that enables faster searching of *entries* using the *index_sea
 **index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='')**
 
 Similar to the *search* function, but uses the index created by *build_index* for faster searching.
-
-**print_tgi(entry)**
-
-Displays the type, group, and instance of *entry*, as will as the name of *entry* if it has a name.
-
-**read_file_name(entry)**
-
-Reads the file name of *entry* for supported file types. Returns the name of the file if the file's type is supported, otherwise returns an empty sting.
-
-**write_file_name(entry)**
-
-Writes *entry['name']* to *entry['content']*. Only works with supported file types.
 
 **unpack_str(file)**
 
@@ -213,70 +262,9 @@ Converts the files that use the [CPF](#CPF-dict) format into a dictionary. *file
 
 Converts dictionaries created by the *unpack_cpf* function into a BytesIO file. Returns the file.
 
-## Dictionaries
-Structure of dictionaries created by this script:
+# Dictionaries
 
-#### package (dict)
-Dictionary containing *header* and *entries*
-
------
-
-#### header (dict)
-
-**'major version'** (int): Equal to 1.
-
-**'minor version'** (int): Equal to 1.
-
-**'major user version'** (int): Equal to 0.
-
-**'minor user version'** (int): Equal to 0.
-
-**'flags'** (int): Not known.
-
-**'created date'** (int)
-
-**'modified date'** (int)
-
-**'index major version'** (int): Equal to 7.
-
-**'index entry count'** (int): The number of entries in the file.
-
-**'index location'** (int): The location of the file index.
-
-**'index size'** (int): The length of the index.
-
-**'hole index entry count'** (int): The number of holes in the file.
-
-**'hole index location'** (int): The location of the holes index in the file.
-
-**'hole index size'** (int): The length of the holes index.
-
-**'index minor version'** (int): The index version, between 0 and 2.
-
-**'remainder'** (bytes): What remains of the header.
-
------
-
-#### entries (list of dicts)
-Each element in this list contains the following:
-
-**'type'** (int): Entry type.
-
-**'group'** (int): Entry group.
-
-**'instance'** (int): Entry instance.
-
-**'resource'** (int): Entry resource, only exists if the *index minor version* of the *header* is 2.
-
-**'content'** (BytesIO): File-like object stored in memory containing the entry itself.
-
-**'compressed'** (bool): Indicates whether the entry is compressed or not.
-
-**'name'** (str): Contains the name of the entry for supported file types. Keep in mind that changing this value will not change the actual name in *'content'*. To write the new name to *'content'*, use the *write_file_name* function.
-
------
-
-#### STR (dict)
+## STR (dict)
 STR dictionaries created by the *unpack_str* function contain the following:
 
 **'file name'** (str): The name of the entry
@@ -285,9 +273,7 @@ STR dictionaries created by the *unpack_str* function contain the following:
 
 **'languages'** (dict of lists of strs): Dictionary containing a list of strings for each language, with the language's code being the key to the dictionary. Use the key 1 for the default English strings.
 
------
-
-#### CPF (dict)
+## CPF (dict)
 CPF dictionaries created by the *unpack_cpf* function contain the following:
 
 **'version'** (int)
@@ -308,7 +294,7 @@ CPF dictionaries created by the *unpack_cpf* function contain the following:
 
 **'data'** (specified by *'type'*): the actual data in the entry.
 
-## Resources
+# Resources
 General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
 
 Useful image showing the game's file format: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
