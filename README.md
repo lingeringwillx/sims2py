@@ -110,7 +110,7 @@ Inherits from [MemoryIO](#MemoryIO).
 
 ### Methods
 
-**Entry(type_id, group_id, instance_id, resource_id=None, name='', content=MemoryIO(), compressed=False)**
+**Entry(type_id, group_id, instance_id, resource_id=None, name='', content=b'', compressed=False)**
 
 Creates an entry containing the provided arguments.
 
