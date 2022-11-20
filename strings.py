@@ -1,29 +1,37 @@
 from dbpf import *
 
-def unpack_str(file):
-    file.seek(0)
+def unpack_str(entry):
+    decompress(entry)
     
     content = {}
-    content['file name'] = file.read_str()
-    file.seek(64)
-    content['format code'] = file.read_int(2)
+    content['type'] = entry.type
+    content['group'] = entry.group
+    content['instance'] = entry.instance
+    
+    if 'resource' in entry:
+        content['resource'] = entry.resource
+        
+    content['file name'] = entry.read_str()
+    
+    entry.seek(64)
+    content['format code'] = entry.read_int(2)
     
     if content['format code'] != 0xFFFD and content['format code'] != 0xFFFF:
         raise NotSupportedError('format code 0x{:04X} is not supported'.format(content['format code']))
         
-    count = file.read_int(2)
+    count = entry.read_int(2)
     
     content['languages'] = {}
     for i in range(count):
-        language_code = file.read_int(1)
+        language_code = entry.read_int(1)
         
         if language_code not in content['languages']:
             content['languages'][language_code] = []
             
-        content['languages'][language_code].append(file.read_str())
-        file.seek(file.find(b'\x00') + 1)
+        content['languages'][language_code].append(entry.read_str())
+        entry.seek(entry.find(b'\x00') + 1)
         
-    file.seek(0)
+    entry.seek(0)
     return content
     
 def pack_str(content):
@@ -39,5 +47,7 @@ def pack_str(content):
             file.write_str(value, null_term=True)
             file.write(b'\x00')
             
-    file.seek(0)
-    return file
+    if 'resource' in content:
+        return Entry(content['type'], content['group'], content['instance'], content['resource'], content['file name'], file.read_all())
+    else:
+        return Entry(content['type'], content['group'], content['instance'], name=content['file name'], content=file.read_all())

@@ -2,7 +2,6 @@ from .rw import MemoryIO
 import string as strlib
 import ctypes
 import os
-import struct
 import sys
 
 """
@@ -141,15 +140,13 @@ class Entry(MemoryIO):
             
     def read_name(self):
         if self.type in named_types:
-            return partial_decompress(self, 64).read().rstrip(b'\x00').decode('utf-8')
+            self.name = partial_decompress(self, 64).read().rstrip(b'x\00').decode('utf-8')
             
         elif self.type in named_rcol_types:
             file = partial_decompress(self, 255)
             location = file.find(b'cSGResource')
             
-            if location == -1:
-                return ''
-            else:
+            if location != -1:
                 file.seek(location + 19)
                 self.name = file.read_7bstr()
                 
@@ -157,9 +154,7 @@ class Entry(MemoryIO):
             file = partial_decompress(self)
             location = file.find(b'\x18\xea\x8b\x0b\x04\x00\x00\x00name')
             
-            if location == -1:
-                return ''
-            else:
+            if location != -1:
                 file.seek(location + 12)
                 self.name = file.read_pstr(4)
                 
@@ -171,7 +166,7 @@ class Entry(MemoryIO):
         elif self.type == 0x46574156:
             file = partial_decompress(self)
             file.seek(64)
-            self.name = file.read().rstrip(b'\x00').decode('utf-8')
+            self.name = file.read().rstrip(b'x\00').decode('utf-8')
             
         else:
             self.name = ''
@@ -179,51 +174,45 @@ class Entry(MemoryIO):
         return self.name
         
     def write_name(self):
-        was_compressed = False
+        was_compressed = self.compressed
         
         if self.type in named_types:
             if self.compressed:
                 decompress(self)
-                was_compressed = True
                 
-                if len(self.name) <= 64:
-                    self.seek(0)
-                    self.write_str(self.name)
-                    self.write_int(0, 64 - len(self.name))
-                    self.seek(0)
-                else:
-                    raise ValueError("file name '{}' is longer than expected".format(self.name))
-                    
+            if len(self.name) <= 64:
+                self.seek(0)
+                self.write_str(self.name)
+                self.write_int(0, 64 - len(self.name))
+                self.seek(0)
+            else:
+                raise ValueError("file name '{}' is longer than expected".format(self.name))
+                
         elif self.type in named_rcol_types:
             if self.compressed:
                 decompress(self)
-                was_compressed = True
                 
             location = self.find(b'cSGResource')
             
             if location != -1:
-                location += 19
-                self.seek(location)
+                self.seek(location + 19)
                 self.overwrite_7bstr(self.name)
                 self.seek(0)
                 
         elif self.type in named_cpf_types:
             if self.compressed:
                 decompress(self)
-                was_compressed = True
                 
             location = self.find(b'\x18\xea\x8b\x0b\x04\x00\x00\x00name')
             
             if location != -1:
-                location += 12
-                self.seek(location)
+                self.seek(location + 12)
                 self.overwrite_pstr(self.name, 4)
                 self.seek(0)
                 
         elif self.type in lua_types:
             if self.compressed:
                 decompress(self)
-                was_compressed = True
                 
             self.seek(4)
             self.overwrite_pstr(self.name, 4)
@@ -232,7 +221,6 @@ class Entry(MemoryIO):
         elif self.type == 0x46574156:
             if self.compressed:
                 decompress(self)
-                was_compressed = True
                 
             self.seek(64)
             self.write_str(self.name, null_term=True)
@@ -368,7 +356,7 @@ class Package:
         #read file names
         for entry in self.entries:
             try:
-                entry.name = entry.read_name()
+                entry.read_name()
             except CompressionError:
                 pass
                 
@@ -543,13 +531,9 @@ def partial_decompress(entry, size=-1):
         
         if size == -1 or size >= uncompressed_size:
             size = uncompressed_size
-            truncate = False
-            
-        else:
-            truncate = True
             
         dst = ctypes.create_string_buffer(size)
-        success = clib.decompress(src, compressed_size, dst, size, truncate)
+        success = clib.decompress(src, compressed_size, dst, size, True)
         
         entry.seek(0)
         
@@ -559,11 +543,9 @@ def partial_decompress(entry, size=-1):
             raise CompressionError('Could not decompress the file')
             
     else:
-        #if size is -1, then read(size) will read the whole file
+        buffer = entry.read(size)
         entry.seek(0)
-        dst = entry.read(size)
-        entry.seek(0)
-        return MemoryIO(dst)
+        return MemoryIO(buffer)
         
 def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
     file_name = file_name.lower()

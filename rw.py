@@ -1,4 +1,5 @@
 from io import BytesIO
+import struct
 
 class MemoryIO(BytesIO):
     def __len__(self):
@@ -24,21 +25,11 @@ class MemoryIO(BytesIO):
     def write_int(self, number, numbytes, endian='little', signed=False):
         return self.write(number.to_bytes(numbytes, endian, signed=signed))
         
-    def read_float(self, endian='little'):
-        if endian == 'little':
-            return struct.unpack('<f', self.read(4))[0]
-        elif endian == 'big':
-            return struct.unpack('>f', self.read(4))[0]
-        else:
-            raise ValueError("Unexpected endian '{}'".format(endian))
+    def read_float(self):
+        return struct.unpack('<f', self.read(4))[0]
             
-    def write_float(self, number, endian='little'):
-        if endian == 'little':
-            return self.write(struct.pack('<f', number))
-        elif endian == 'big':
-            return self.write(struct.pack('>f', number))
-        else:
-            raise ValueError("Unexpected endian '{}'".format(endian))    
+    def write_float(self, number):
+        return self.write(struct.pack('<f', number))   
             
     def read_str(self, length=-1):
         if length > -1:
@@ -67,8 +58,8 @@ class MemoryIO(BytesIO):
     def read_pstr(self, numbytes):
         return self.read_str(self.read_int(numbytes))
         
-    def write_pstr(self, string, numbytes, endian='little'):
-        return self.write_int(len(string), numbytes, endian) + self.write_str(string)
+    def write_pstr(self, string, numbytes):
+        return self.write_int(len(string), numbytes) + self.write_str(string)
         
     def read_7bstr(self):
         length = 0
@@ -99,84 +90,49 @@ class MemoryIO(BytesIO):
         
         return self.write_str(string) + i
         
-    def append_int(self, number, numbytes, endian='little', signed=False):
+    def _append(self, writer, args):
         start = self.tell()
         buffer = self.read()
         self.seek(start)
-        length = self.write_int(number, numbytes, endian='little', signed=False)
+        length = writer(*args)
         self.write(buffer)
         self.seek(start + length)
-        return length
+        return length        
         
-    def append_float(self, number, endian='little'):
-        start = self.tell()
-        buffer = self.read()
-        self.seek(start)
-        length = self.write_float(self, number, endian='little')
-        self.write(buffer)
-        self.seek(start + length)
-        return length
+    def append_int(self, number, numbytes, endian='little', signed=False):
+        return self._append(self.write_int, (number, numbytes, endian, signed))
+        
+    def append_float(self, number):
+        return self._append(self.write_float, (number,))
         
     def append_str(self, string, null_term=False):
-        start = self.tell()
-        buffer = self.read()
-        self.seek(start)
-        length = self.write_str(string, null_term)
-        self.write(buffer)
-        self.seek(start + length)
-        return length
+        return self._append(self.write_str, (string, null_term))
         
     def append_pstr(self, string, numbytes):
-        start = self.tell()
-        buffer = self.read()
-        self.seek(start)
-        length = self.write_pstr(string, numbytes)
-        self.write(buffer)
-        self.seek(start + length)
-        return length
+        return self._append(self.write_pstr, (string, numbytes))
         
     def append_7bstr(self, string):
+        return self._append(self.write_7bstr, string)
+        
+    def _overwrite(self, reader, reader_args, writer, writer_args):
         start = self.tell()
+        reader(*reader_args)
         buffer = self.read()
         self.seek(start)
-        length = self.write_7bstr(string)
+        length = writer(*writer_args)
         self.write(buffer)
+        self.truncate()
         self.seek(start + length)
         return length
         
     def overwrite_str(self, string, length=-1, null_term=False):
-        start = self.tell()
-        self.read_str(length)
-        buffer = self.read()
-        self.seek(start)
-        length = self.write_str(string, null_term)
-        self.write(buffer)
-        self.truncate()
-        self.seek(start + length)
-        return length
+        return self._overwrite(self.read_str, (length,), self.write_str, (string, null_term))
         
     def overwrite_pstr(self, string, numbytes):
-        start = self.tell()
-        length = self.read_int(numbytes)
-        self.seek(length, 1)
-        buffer = self.read()
-        self.seek(start)
-        length = self.write_pstr(string, numbytes)
-        self.write(buffer)
-        self.truncate()
-        self.seek(start + length)
-        return length
-	
+        return self._overwrite(self.read_pstr, (numbytes,), self.write_pstr, (string, numbytes))
+	    
     def overwrite_7bstr(self, string):
-        start = self.tell()
-        self.read_7bstr()
-        buffer = self.read()
-        self.seek(start)
-        self.write_7bstr(string)
-        self.write(buffer)
-        self.truncate()
-        self.seek(start + length)
-        return length
+        return self._overwrite(self.read_7bstr, (), self.write_7bstr, (string,))
         
     def delete(self, length):
         current_position = self.tell()

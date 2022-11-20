@@ -160,15 +160,15 @@ Converts *number* into a bytes object with length *numbytes* and endian *endian*
 
 Same as *write_int* but appends the value to the file at the current position instead of overwriting existing bytes.
 
-**read_float(endian='little')**
+**read_float()**
 
-Reads the next 4 bytes from the file and converts them into a float. The endian can be specified with the *endian* argument.
+Reads the next 4 bytes from the file and converts them into a float.
 
-**write_float(number, endian='little')**
+**write_float(number)**
 
-Converts *number* into a bytes object with endian *endian*, then writes it into the file.
+Converts *number* into a bytes object then writes it into the file.
 
-**append_float(number, endian='little')**
+**append_float(number)**
 
 Same as *write_float* but appends the value to the file at the current position instead of overwriting existing bytes.
 
@@ -254,17 +254,17 @@ Returns an index that enables faster searching of *entries* using the *index_sea
 
 Similar to the *search* function, but uses the index created by *build_index* for faster searching.
 
-**unpack_str(file)**
+**unpack_str(entry)**
 
-Converts the files that use the [STR](#STR-dict) format into a dictionary. *file* needs to decompressed before passing it to the function. Throws a *NotSupportedError* if a STR resource with an unsupported format code is passed to the function. Currently only format codes 0xFFFD and 0xFFFF are supported. Other formats don't show up often in the game's code. The function does not unpack the description accompanying each string in the files.
+Converts the entries that use the [STR](#STR-dict) format into a dictionary. Throws a *NotSupportedError* if a STR entry with an unsupported format code is passed to the function. Currently only format codes 0xFFFD and 0xFFFF are supported. Other formats don't show up often in the game's code. The function does not unpack the descriptions accompanying each string in the entries.
 
 **pack_str(content)**
 
 Converts dictionaries created by the *unpack_str* function into a MemoryIO file and returns the file.
 
-**unpack_cpf(file)**
+**unpack_cpf(entry)**
 
-Converts the files that use the [CPF](#CPF-dict) format into a dictionary. *file* needs to decompressed before passing it to the function.
+Converts entries that use the [CPF](#CPF-dict) format into a dictionary.
 
 **pack_cpf(content)**
 
