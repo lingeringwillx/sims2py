@@ -132,7 +132,11 @@ File-like object stored in memory. Extends *io.BytesIO* from the standard librar
 
 ### Methods
 
-**__len__()**
+**MemoryIO(b='')**
+
+Take bytes object *b* and returns a *MemoryIO* object containing *b*.
+
+**\_\_len\_\_()**
 
 Returns the size/length of the file.
 
@@ -150,7 +154,7 @@ Overwrites the entire file with bytes object *buffer*.
 
 **read_int(numbytes, endian='little', signed=False)**
 
-Reads *numbytes* bytes from the file and converts it into a signed integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
+Reads *numbytes* bytes from the file and converts it into an integer. The endian can be specified with the *endian* argument. The *signed* argument is used to specify whether the integer is signed or not.
 
 **write_int(number, numbytes, endian='little', signed=False)**
 
