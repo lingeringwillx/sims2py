@@ -26,6 +26,8 @@ Creates an object resembling the structure of a *.package* file.
 
 **entries** (list\[Entry]): Contains instances of [Entry](#Entry).
 
+**file_name** (str): The name of the file that was used to create the Package object.
+
 ### Methods
 
 **Package()**
