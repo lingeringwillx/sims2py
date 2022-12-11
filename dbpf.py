@@ -140,7 +140,11 @@ class Entry(MemoryIO):
             
     def read_name(self):
         if self.type in named_types:
-            self.name = partial_decompress(self, 64).read().rstrip(b'x\00').decode('utf-8')
+            try:
+                self.name = partial_decompress(self, 64).read().rstrip(b'x\00').decode('utf-8', errors='ignore')
+            except:
+                print(decompress(self).read_all())
+                sys.exit()
             
         elif self.type in named_rcol_types:
             file = partial_decompress(self, 255)
@@ -166,7 +170,7 @@ class Entry(MemoryIO):
         elif self.type == 0x46574156:
             file = partial_decompress(self)
             file.seek(64)
-            self.name = file.read().rstrip(b'x\00').decode('utf-8')
+            self.name = file.read().rstrip(b'x\00').decode('utf-8', errors='ignore')
             
         else:
             self.name = ''
