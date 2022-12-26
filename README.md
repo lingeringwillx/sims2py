@@ -202,13 +202,13 @@ Reads a Pascal string from the file and returns it. *numbytes* is used to specif
 
 Writes *string* to the file as a Pascal string. *numbytes* is used to specify how many bytes are used for the string's length in the file.
 
-**overwrite_pstr(string, numbytes)**
-
-Deletes the existing Pascal string at the current position and writes *string* as a Pascal string in it's place. *numbytes* is used to specify how many bytes are used for the integer holding the string's length.
-
 **append_pstr(string, numbytes)**
 
 Same as *write_pstr* but appends the value to the file at the current position instead of overwriting existing bytes.
+
+**overwrite_pstr(string, numbytes)**
+
+Deletes the existing Pascal string at the current position and writes *string* as a Pascal string in it's place. *numbytes* is used to specify how many bytes are used for the integer holding the string's length.
 
 **read_7bstr()**
 
