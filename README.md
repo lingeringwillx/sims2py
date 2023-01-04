@@ -190,9 +190,9 @@ Writes *string* into the file. if *null_term* is set to True, then a null termin
 
 Same as *write_str* but appends the value to the file at the current position instead of overwriting existing bytes.
 
-**overwrite_str(string, length=-1, null_term=False)**
+**overwrite_str(string, length=-1)**
 
-Deletes the string existing at the current location, then writes *string* in it's place. if *length* is specified then the function will delete *length* bytes, otherwise it will delete all bytes until it encounters a null termination. if *null_term* is set to True, then a null termination is also written to the file.
+Deletes the string existing at the current location, then writes *string* in it's place. if *length* is specified then the function will delete *length* bytes, otherwise it will delete all bytes until it encounters a null termination.
 
 **read_pstr(numbytes)**
 
@@ -232,7 +232,7 @@ Deletes *length* bytes from the file starting from *current position - length* t
 
 **find(bytes_sequence, n=1)**
 
-Searches *file* for *bytes_sequence*. Returns the location in which the *nth* occurrence of *bytes_sequence* can be found, returns -1 if it's not found. Starts searching from the current position  in the buffer.
+Searches *file* for *bytes_sequence*. Returns the location in which the *nth* occurrence of *bytes_sequence* can be found, returns -1 if it's not found. Starts searching from the current position in the buffer.
 
 # Functions
 
@@ -246,7 +246,7 @@ Decompresses the content of *entry*. If the content of *entry* is already decomp
 
 **partial_decompress(entry, size=-1)**
 
-Decompresses *entry* up to *size*. If *size* is not specified, then the whole file will decompressed. Returns a MemoryIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
+Decompresses *entry* up to *size*. If *size* is not specified, then the whole file will be decompressed. Returns a MemoryIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
 
 **search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
 

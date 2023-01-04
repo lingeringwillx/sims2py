@@ -125,9 +125,12 @@ class MemoryIO(BytesIO):
         self.seek(start + length)
         return length
         
-    def overwrite_str(self, string, length=-1, null_term=False):
-        return self._overwrite(self.read_str, (length,), self.write_str, (string, null_term))
-        
+    def overwrite_str(self, string, length=-1):
+        if length > -1:
+            return self._overwrite(self.read_str, (length,), self.write_str, (string, False))
+        else:
+            return self._overwrite(self.read_str, (), self.write_str, (string, True))
+            
     def overwrite_pstr(self, string, numbytes):
         return self._overwrite(self.read_pstr, (numbytes,), self.write_pstr, (string, numbytes))
 	    
