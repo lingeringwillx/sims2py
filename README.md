@@ -248,6 +248,9 @@ Decompresses the content of *entry*. If the content of *entry* is already decomp
 
 Decompresses *entry* up to *size*. If *size* is not specified, then the whole file will be decompressed. Returns a MemoryIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
 
+**walk(path)**
+Iterates recursively over the files in directory *path* and returns the paths to *.package* files.
+
 **search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
 
 Searches the package's files for the desired type, group, instance, or resource, returns a list of the indices of the entries matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first index that it finds.
