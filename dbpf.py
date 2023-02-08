@@ -547,6 +547,12 @@ def partial_decompress(entry, size=-1):
         entry.seek(0)
         return MemoryIO(buffer)
         
+def walk(path):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith('.package'):
+                yield os.path.join(root, file)
+                
 def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
     file_name = file_name.lower()
     
@@ -574,12 +580,6 @@ def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, fil
             
     return indices
     
-def walk(path):
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            if file.endswith('.package'):
-                yield os.path.join(root, file)
-                
 #for faster searching
 def build_index(entries):
     index = {}
