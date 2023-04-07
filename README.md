@@ -8,13 +8,13 @@
 
 **Requirements:** 
 
-- Windows 7 or higher
+1- Windows 7 or higher
 
-- Python 3.2 or higher
+2- Python 3.2 or higher
 
-- [StructIO](https://github.com/lingeringwillx/StructIO)
+3- [StructIO](https://github.com/lingeringwillx/StructIO)
 
-- Mingw-w64 (Only if you want to recompile the C library)
+4- Mingw-w64 (Only if you want to recompile the C library)
 
 **Installation:**
 
