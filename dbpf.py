@@ -1,4 +1,4 @@
-from .rw import MemoryIO
+from structio import StructIO
 import string as strlib
 import ctypes
 import os
@@ -59,6 +59,23 @@ class RepeatKeyError(Exception): pass
 class CompressionError(Exception): pass
 class NotSupportedError(Exception): pass
 
+class MemoryIO(StructIO):
+    def read_7bstr(self):
+        return self.read_str(self.read_7bint())
+        
+    def write_7bstr(self, string):
+        return self.write_7bint(len(string)) + self.write_str(string)
+        
+    def append_7bstr(self, string):
+        return self.append(self._struct.pack_7bint(len(string)) + self._struct.pack_str(string))
+        
+    def overwrite_7bstr(self, string):
+        start = self.tell()
+        str_len = self.read_7bint()
+        int_len = self.tell() - start
+        
+        return self.overwrite(start, start + int_len + str_len, self._struct.pack_7bint(len(string)) + self._struct.pack_str(string))
+        
 class Header:
     def __init__(self):
         self.major_version = 1
@@ -138,6 +155,50 @@ class Entry(MemoryIO):
         else:
             return Entry(self.type, self.group, self.instance, name=self.name, content=self.read_all(), compressed=self.compressed)
             
+    #using C++ library from moreawesomethanyou   
+    def compress(self):
+        if self.compressed or self.type == 0xE86B1EEF:
+            return self
+            
+        else:
+            src = self.read_all()
+            src_len = len(src)
+            dst = ctypes.create_string_buffer(src_len)
+            
+            dst_len = clib.try_compress(src, src_len, dst)
+            
+            if dst_len > 0:
+                self.write_all(dst.raw[:dst_len])
+                self.compressed = True
+                
+                return self
+                
+    #using C++ library from moreawesomethanyou 
+    def decompress(self):
+        if self.compressed:
+            src = self.read_all()
+            compressed_size = len(src)
+            
+            self.seek(6)
+            uncompressed_size = self.read_int(3, 'big')
+            
+            dst = ctypes.create_string_buffer(uncompressed_size)
+            success = clib.decompress(src, compressed_size, dst, uncompressed_size, False)
+            
+            self.seek(0)
+            
+            if success:
+                self.write_all(dst.raw)
+                self.compressed = False
+                
+                return self
+                
+            else:
+                raise CompressionError('Could not decompress the file')
+                
+        else:
+            return self
+        
     def read_name(self):
         if self.type in named_types:
             self.name = partial_decompress(self, 64).read().rstrip(b'x\00').decode('utf-8', errors='ignore')
@@ -163,72 +224,62 @@ class Entry(MemoryIO):
             file.seek(4)
             self.name = file.read_pstr(4)        
             
-        elif self.type == 0x46574156:
-            file = partial_decompress(self)
-            file.seek(64)
-            self.name = file.read().rstrip(b'x\00').decode('utf-8', errors='ignore')
-            
         else:
             self.name = ''
             
         return self.name
         
-    def write_name(self):
+    def write_name(self, name):
         was_compressed = self.compressed
         
         if self.type in named_types:
             if self.compressed:
-                decompress(self)
+                self.decompress()
                 
-            if len(self.name) <= 64:
+            if len(name) <= 64:
                 self.seek(0)
-                self.write_str(self.name)
-                self.write_int(0, 64 - len(self.name))
+                self.write_str(name)
+                self.write_int(0, 64 - len(name))
                 self.seek(0)
+                self.name = name
             else:
-                raise ValueError("file name '{}' is longer than expected".format(self.name))
+                raise ValueError("file name '{}' is longer than expected".format(name))
                 
         elif self.type in named_rcol_types:
             if self.compressed:
-                decompress(self)
+                self.decompress()
                 
             location = self.find(b'cSGResource')
             
             if location != -1:
                 self.seek(location + 19)
-                self.overwrite_7bstr(self.name)
+                self.overwrite_7bstr(name)
                 self.seek(0)
+                self.name = name
                 
         elif self.type in named_cpf_types:
             if self.compressed:
-                decompress(self)
+                self.decompress()
                 
             location = self.find(b'\x18\xea\x8b\x0b\x04\x00\x00\x00name')
             
             if location != -1:
                 self.seek(location + 12)
-                self.overwrite_pstr(self.name, 4)
+                self.overwrite_pstr(name, 4)
                 self.seek(0)
+                self.name = name
                 
         elif self.type in lua_types:
             if self.compressed:
-                decompress(self)
+                self.decompress()
                 
             self.seek(4)
-            self.overwrite_pstr(self.name, 4)
+            self.overwrite_pstr(name, 4)
             self.seek(0)
-            
-        elif self.type == 0x46574156:
-            if self.compressed:
-                decompress(self)
-                
-            self.seek(64)
-            self.write_str(self.name, null_term=True)
-            self.truncate()
-            self.seek(0)
+            self.name = name
             
         if was_compressed:
-            compress(self)
+            self.compress()
             
 class Package:
     def __init__(self):
@@ -474,53 +525,6 @@ class Package:
         with open(file_path, 'wb') as fs:
             fs.write(file.read_all())
             
-#using C++ library from moreawesomethanyou   
-def compress(entry):
-    if entry.compressed or entry.type == 0xE86B1EEF:
-        return entry
-        
-    else:
-        src = entry.read_all()
-        src_len = len(src)
-        dst = ctypes.create_string_buffer(src_len)
-        
-        dst_len = clib.try_compress(src, src_len, dst)
-        
-        if dst_len > 0:
-            entry.write_all(dst.raw[:dst_len])
-            entry.compressed = True
-            
-            return entry
-            
-        else:
-            raise CompressionError('Could not compress the file')
-            
-#using C++ library from moreawesomethanyou 
-def decompress(entry):
-    if entry.compressed:
-        src = entry.read_all()
-        compressed_size = len(src)
-        
-        entry.seek(6)
-        uncompressed_size = entry.read_int(3, 'big')
-        
-        dst = ctypes.create_string_buffer(uncompressed_size)
-        success = clib.decompress(src, compressed_size, dst, uncompressed_size, False)
-        
-        entry.seek(0)
-        
-        if success:
-            entry.write_all(dst.raw)
-            entry.compressed = False
-            
-            return entry
-            
-        else:
-            raise CompressionError('Could not decompress the file')
-            
-    else:
-        return entry
-        
 def partial_decompress(entry, size=-1):
     if entry.compressed:
         src = entry.read_all()  
@@ -553,8 +557,8 @@ def walk(path):
             if file.endswith('.package'):
                 yield os.path.join(root, file)
                 
-def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False):
-    file_name = file_name.lower()
+def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='', get_first=False):
+    entry_name = entry_name.lower()
     
     indices = []
     for i, entry in enumerate(entries):
@@ -570,7 +574,7 @@ def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, fil
         if resource_id != -1 and resource_id != entry.resource:
             continue
             
-        if file_name != '' and file_name not in entry.name.lower():
+        if entry_name != '' and entry_name not in entry.name.lower():
             continue
             
         indices.append(i)
@@ -625,7 +629,7 @@ def build_index(entries):
     return index
     
 #faster search
-def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name=''):
+def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name=''):
     results = []
     keys = ['types', 'groups', 'instances', 'resources']
     values = [type_id, group_id, instance_id, resource_id]
@@ -641,16 +645,16 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1,
     if len(results) > 0:
         results = set.intersection(*results)
         
-    if file_name != '':
-        file_name = file_name.lower()
-        names_set = (index['names index'][char] for char in file_name)
+    if entry_name != '':
+        entry_name = entry_name.lower()
+        names_set = (index['names index'][char] for char in entry_name)
         
         if len(results) > 0:
             results = results.intersection(*names_set)
         else:
             results = set.intersection(*names_set)
             
-        if len(file_name) > 1:
-            return [i for i in results if file_name in index['names list'][i]]
+        if len(entry_name) > 1:
+            return [i for i in results if entry_name in index['names list'][i]]
             
     return list(results)
