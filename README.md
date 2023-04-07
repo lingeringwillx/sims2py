@@ -156,7 +156,7 @@ File-like object stored in memory, based on [StructIO](https://github.com/linger
 
 ### Methods
 
-**MemoryIO(b='')**
+**MemoryIO(b=b'')**
 
 Take bytes object *b* and returns a *MemoryIO* object containing *b*.
 
