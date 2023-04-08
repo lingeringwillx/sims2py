@@ -44,7 +44,7 @@ Creates a Package object containing the data required to make an empty package f
 
 Static method. Reads a package file from the provided *file_path* and returns a *Package* object containing its data. If *decompress* is True, then all of the package's entries will be decompressed.
 
-**pack_into(file_path, compress=True)**
+**pack_into(file_path, compress=False)**
 
 Converts the Package object into a package file and writes it to a file with the provided *file_path*. If *compress* is True, then the function will try to compress all of the package's entries.
 
