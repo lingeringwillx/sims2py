@@ -293,7 +293,7 @@ class Package:
         
         return package_copy
         
-    def unpack(file_path):
+    def unpack(file_path, decompress=False):
         with open(file_path, 'rb') as fs:
             file = MemoryIO(fs.read())
             
@@ -404,6 +404,14 @@ class Package:
                     
                 entry.seek(0)
                 
+        #decompress entries
+        if decompress:
+            for entry in self.entries:
+                try:
+                    entry.decompress()
+                except CompressionError:
+                    pass
+                    
         #read file names
         for entry in self.entries:
             try:
@@ -413,17 +421,12 @@ class Package:
                 
         return self 
         
-    def pack_into(self, file_path):
-        
-        """
-        #update file names
-        for entry in self.entries:
-            try:
-                entry.write_name()
-            except CompressionError:
-                pass
-        """
-        
+    def pack_into(self, file_path, compress=False):
+        #compress entries
+        if compress:
+            for entry in self.entries:
+                entry.compress()
+                
         #use index minor version 2?
         if self.header.index_minor_version != 2:
             for entry in self.entries:

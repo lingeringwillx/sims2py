@@ -40,13 +40,13 @@ Creates an object resembling the structure of a *.package* file.
 
 Creates a Package object containing the data required to make an empty package file.
 
-**Package.unpack(file_path)**
+**Package.unpack(file_path, decompress=False)**
 
-Static method. Reads a package file from the provided *file_path* and returns a *Package* object containing its data.
+Static method. Reads a package file from the provided *file_path* and returns a *Package* object containing its data. If *decompress* is True, then all of the package's entries will be decompressed.
 
-**pack_into(file_path)**
+**pack_into(file_path, compress=True)**
 
-Converts the Package object into a package file and writes it to a file with the provided *file_path*.
+Converts the Package object into a package file and writes it to a file with the provided *file_path*. If *compress* is True, then the function will try to compress all of the package's entries.
 
 **copy()**
 
