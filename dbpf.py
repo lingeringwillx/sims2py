@@ -550,6 +550,7 @@ def partial_decompress(entry, size=-1):
             raise CompressionError('Could not decompress the file')
             
     else:
+        entry.seek(0)
         buffer = entry.read(size)
         entry.seek(0)
         return MemoryIO(buffer)
