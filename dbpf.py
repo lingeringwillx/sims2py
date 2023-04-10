@@ -64,17 +64,19 @@ class MemoryIO(StructIO):
         return self.read_str(self.read_7bint())
         
     def write_7bstr(self, string):
-        return self.write_7bint(len(string)) + self.write_str(string)
+        b = self._struct.pack_str(string)
+        return self.write(self._struct.pack_7bint(len(b)) + b)
         
     def append_7bstr(self, string):
-        return self.append(self._struct.pack_7bint(len(string)) + self._struct.pack_str(string))
+        b = self._struct.pack_str(string)
+        return self.append(self._struct.pack_7bint(len(b)) + b)
         
     def overwrite_7bstr(self, string):
         start = self.tell()
         str_len = self.read_7bint()
         int_len = self.tell() - start
-        
-        return self.overwrite(start, start + int_len + str_len, self._struct.pack_7bint(len(string)) + self._struct.pack_str(string))
+        b = self._struct.pack_str(string)
+        return self.overwrite(start, start + int_len + str_len, self._struct.pack_7bint(len(b)) + b)
         
 class Header:
     def __init__(self):
