@@ -60,17 +60,16 @@ class CompressionError(Exception): pass
 class NotSupportedError(Exception): pass
 
 class ExtendedStruct(Struct):
-    def _get_7bstr_end(self, b, start=0):
-        length, int_end = self.unpack_7bint(b, start=0, ret_end=True)
-        return int_end + length
+    def _get_7bstr_len(self, b, start=0):
+        str_len, int_len = self.unpack_7bint(b, start, ret_len=True)
+        return int_len + str_len
         
-    def unpack_7bstr(self, b, start=0, ret_end=False):
-        length, int_end = self.unpack_7bint(b, start, ret_end=True)
-        str_end = int_end + length
-        string = self.unpack_str(b[int_end:str_end])
+    def unpack_7bstr(self, b, start=0, ret_len=False):
+        str_len, int_len = self.unpack_7bint(b, start, ret_len=True)
+        string = self.unpack_str(b[(start + int_len):(start + int_len + str_len)])
         
-        if ret_end:
-            return string, str_end
+        if ret_len:
+            return string, int_len + str_len
         else:
             return string
             
@@ -83,8 +82,8 @@ class MemoryIO(StructIO):
         super().__init__(b, endian, struct=struct)
         
     def read_7bstr(self):
-        string, end = self._struct.unpack_7bstr(self.getvalue(), start=self.tell(), ret_end=True)
-        self.seek(end)
+        string, length = self._struct.unpack_7bstr(self.getvalue(), start=self.tell(), ret_len=True)
+        self.seek(length, 1)
         return string
         
     def write_7bstr(self, string):
@@ -95,8 +94,8 @@ class MemoryIO(StructIO):
         
     def overwrite_7bstr(self, string):
         start = self.tell()
-        end = self._struct._get_7bstr_end(self.getvalue(), start)
-        return self.overwrite(start, end, self._struct.pack_7bstr(string))
+        length = self._struct._get_7bstr_len(self.getvalue(), start)
+        return self.overwrite(start, start + length, self._struct.pack_7bstr(string))
         
 class Header:
     def __init__(self):
