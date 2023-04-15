@@ -1,4 +1,4 @@
-from structio import StructIO
+from structio import Struct, StructIO
 import string as strlib
 import ctypes
 import os
@@ -59,24 +59,44 @@ class RepeatKeyError(Exception): pass
 class CompressionError(Exception): pass
 class NotSupportedError(Exception): pass
 
+class ExtendedStruct(Struct):
+    def _get_7bstr_end(self, b, start=0):
+        length, int_end = self.unpack_7bint(b, start=0, ret_end=True)
+        return int_end + length
+        
+    def unpack_7bstr(self, b, start=0, ret_end=False):
+        length, int_end = self.unpack_7bint(b, start, ret_end=True)
+        str_end = int_end + length
+        string = self.unpack_str(b[int_end:str_end])
+        
+        if ret_end:
+            return string, str_end
+        else:
+            return string
+            
+    def pack_7bstr(self, string):
+        b = self.pack_str(string)
+        return self.pack_7bint(len(b)) + b
+        
 class MemoryIO(StructIO):
+    def __init__(self, b=b'', endian='little', struct=ExtendedStruct):
+        super().__init__(b, endian, struct=struct)
+        
     def read_7bstr(self):
-        return self.read_str(self.read_7bint())
+        string, end = self._struct.unpack_7bstr(self.getvalue(), start=self.tell(), ret_end=True)
+        self.seek(end)
+        return string
         
     def write_7bstr(self, string):
-        b = self._struct.pack_str(string)
-        return self.write(self._struct.pack_7bint(len(b)) + b)
+        return self.write(self._struct.pack_7bstr(string))
         
     def append_7bstr(self, string):
-        b = self._struct.pack_str(string)
-        return self.append(self._struct.pack_7bint(len(b)) + b)
+        return self.append(self._struct.pack_7bstr(string))
         
     def overwrite_7bstr(self, string):
         start = self.tell()
-        str_len = self.read_7bint()
-        int_len = self.tell() - start
-        b = self._struct.pack_str(string)
-        return self.overwrite(start, start + int_len + str_len, self._struct.pack_7bint(len(b)) + b)
+        end = self._struct._get_7bstr_end(self.getvalue(), start)
+        return self.overwrite(start, end, self._struct.pack_7bstr(string))
         
 class Header:
     def __init__(self):
