@@ -61,23 +61,19 @@ class NotSupportedError(Exception): pass
 
 class ExtendedStruct(Struct):
     def _get_7bstr_len(self, b, start=0):
-        str_len, int_len = self.unpack_7bint(b, start, ret_len=True)
+        str_len, int_len = self.unpack_7bint(b, start)
         return int_len + str_len
         
-    def unpack_7bstr(self, b, start=0, ret_len=False):
-        str_len, int_len = self.unpack_7bint(b, start, ret_len=True)
+    def unpack_7bstr(self, b, start=0):
+        str_len, int_len = self.unpack_7bint(b, start)
         string = self.unpack_str(b[(start + int_len):(start + int_len + str_len)])
+        return string, int_len + str_len
         
-        if ret_len:
-            return string, int_len + str_len
-        else:
-            return string
-            
     def pack_7bstr(self, string):
         b = self.pack_str(string)
         return self.pack_7bint(len(b)) + b
         
-class MemoryIO(StructIO):
+class ExtendedStructIO(StructIO):
     def __init__(self, b=b'', endian='little', struct=ExtendedStruct):
         super().__init__(b, endian, struct=struct)
         
