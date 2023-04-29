@@ -73,7 +73,7 @@ class ExtendedStruct(Struct):
         b = self.pack_str(string)
         return self.pack_7bint(len(b)) + b
         
-class ExtendedStructIO(StructIO):
+class MemoryIO(StructIO):
     def __init__(self, b=b'', endian='little', struct=ExtendedStruct):
         super().__init__(b, endian, struct=struct)
         
