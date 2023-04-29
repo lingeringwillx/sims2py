@@ -291,6 +291,9 @@ class Entry(MemoryIO):
             self.seek(0)
             self.name = name
             
+        else:
+            raise NotSupportedError('naming format 0x{:08X} is not supported'.format(self.type))
+            
         if was_compressed:
             self.compress()
             
