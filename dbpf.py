@@ -1,4 +1,4 @@
-from .structio import Struct, StructIO
+from structio import Struct, StructIO
 import string as strlib
 import ctypes
 import os
