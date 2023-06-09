@@ -1,4 +1,4 @@
-from structio import Struct, StructIO
+from .structio import Struct, StructIO
 import string as strlib
 import ctypes
 import os
@@ -76,6 +76,9 @@ class ExtendedStruct(Struct):
 class MemoryIO(StructIO):
     def __init__(self, b=b'', endian='little', struct=ExtendedStruct):
         super().__init__(b, endian, struct=struct)
+        
+    def copy(self):
+        return MemoryIO(self.getvalue(), self._struct.endian)
         
     def read_7bstr(self):
         return self._read(self._struct.unpack_7bstr, ())
@@ -213,31 +216,35 @@ class Entry(MemoryIO):
             return self
         
     def read_name(self):
-        if self.type in named_types:
-            self.name = partial_decompress(self, 64).read().rstrip(b'x\00').decode('utf-8', errors='ignore')
-            
-        elif self.type in named_rcol_types:
-            file = partial_decompress(self, 255)
-            location = file.find(b'cSGResource')
-            
-            if location != -1:
-                file.seek(location + 19)
-                self.name = file.read_7bstr()
+        try:
+            if self.type in named_types:
+                self.name = partial_decompress(self, 64).read().rstrip(b'x\00').decode('utf-8', errors='ignore')
                 
-        elif self.type in named_cpf_types:
-            file = partial_decompress(self)
-            location = file.find(b'\x18\xea\x8b\x0b\x04\x00\x00\x00name')
-            
-            if location != -1:
-                file.seek(location + 12)
-                self.name = file.read_pstr(4)
+            elif self.type in named_rcol_types:
+                file = partial_decompress(self)
+                location = file.find(b'cSGResource')
                 
-        elif self.type in lua_types:
-            file = partial_decompress(self, 255)
-            file.seek(4)
-            self.name = file.read_pstr(4)        
-            
-        else:
+                if location != -1:
+                    file.seek(location + 19)
+                    self.name = file.read_7bstr()
+                    
+            elif self.type in named_cpf_types:
+                file = partial_decompress(self)
+                location = file.find(b'\x18\xea\x8b\x0b\x04\x00\x00\x00name')
+                
+                if location != -1:
+                    file.seek(location + 12)
+                    self.name = file.read_pstr(4)
+                    
+            elif self.type in lua_types:
+                file = partial_decompress(self)
+                file.seek(4)
+                self.name = file.read_pstr(4)        
+                
+            else:
+                self.name = ''
+                
+        except:
             self.name = ''
             
         return self.name
@@ -431,6 +438,7 @@ class Package:
         #read file names
         for entry in self.entries:
             try:
+                #print(entry)
                 entry.read_name()
             except CompressionError:
                 pass
@@ -571,12 +579,6 @@ def partial_decompress(entry, size=-1):
         entry.seek(0)
         return MemoryIO(buffer)
         
-def walk(path):
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            if file.endswith('.package'):
-                yield os.path.join(root, file)
-                
 def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='', get_first=False):
     entry_name = entry_name.lower()
     
