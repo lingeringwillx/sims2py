@@ -176,6 +176,14 @@ Same as *write_7bstr* but appends the value to the entry at the current position
 
 Deletes the 7-bit string existing at the current location and writes *string* as a 7-bit string in it's place.
 
+**skip_7bstr()**
+
+Skips the 7-bit string existing at the current location.
+
+**delete_7bstr()**
+
+Deletes the 7-bit string existing at the current location.
+
 # Functions
 
 **partial_decompress(entry, size=-1)**
