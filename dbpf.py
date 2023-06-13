@@ -92,6 +92,12 @@ class MemoryIO(StructIO):
     def overwrite_7bstr(self, string):
         return self._overwrite(self._struct._get_7bstr_len, (), self._struct.pack_7bstr, (string,))
         
+    def skip_7bstr(self):
+        return self._skip(self._struct._get_7bstr_len, ())
+        
+    def delete_7bstr(self):
+        return self._delete(self._struct._get_7bstr_len, ())
+        
 class Header:
     def __init__(self):
         self.major_version = 1
