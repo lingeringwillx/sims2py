@@ -454,9 +454,36 @@ class Package:
     def pack_into(self, file_path, compress=False):
         #compress entries
         if compress:
+            compressed_entries = {} #for checking if the a compressed entry with the same TGI already exists
+            for i, entry in enumerate(self.entries):
+                if 'resource' in entry:
+                    tgi = (entry.type, entry.group, entry.instance, entry.resource)
+                else:
+                    tgi = (entry.type, entry.group, entry.instance)
+                    
+                if tgi in compressed_entries:
+                    i = compressed_entries[tgi]
+                    self.entries[i].decompress()
+                    
+                else:
+                    entry.compress()
+                    compressed_entries[tgi] = i
+                    
+        #only check for repeated compressed entries
+        else:
+            compressed_entries = set()
             for entry in self.entries:
-                entry.compress()
-                
+                if entry.compressed:
+                    if 'resource' in entry:
+                        tgi = (entry.type, entry.group, entry.instance, entry.resource)
+                    else:
+                        tgi = (entry.type, entry.group, entry.instance)
+                        
+                    if tgi in compressed_entries:
+                        raise RepeatKeyError('Repeat compressed entry found in package')
+                    else:
+                        compressed_entries.add(tgi)
+                        
         #use index minor version 2?
         if self.header.index_minor_version != 2:
             for entry in self.entries:
