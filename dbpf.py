@@ -73,15 +73,22 @@ class ExtendedStruct(Struct):
         b = self.pack_str(string)
         return self.pack_7bint(len(b)) + b
         
+extended_struct = ExtendedStruct()
+
 class MemoryIO(StructIO):
-    def __init__(self, b=b'', endian='little', struct=ExtendedStruct):
-        super().__init__(b, endian, struct=struct)
+    def __init__(self, b=b'', struct=extended_struct):
+        super().__init__(b, struct)
         
     def copy(self):
-        return MemoryIO(self.getvalue(), self._struct.endian)
+        return MemoryIO(self.getvalue(), self._struct)
+        
+    def _get_7bstr_len(self):
+        return self._struct._get_7bstr_len(self.getvalue(), start=self.tell())
         
     def read_7bstr(self):
-        return self._read(self._struct.unpack_7bstr, ())
+        value, length = self._struct.unpack_7bstr(self.getvalue(), start=self.tell())
+        self.seek(length, 1)
+        return value
         
     def write_7bstr(self, string):
         return self.write(self._struct.pack_7bstr(string))
@@ -90,13 +97,14 @@ class MemoryIO(StructIO):
         return self.append(self._struct.pack_7bstr(string))
         
     def overwrite_7bstr(self, string):
-        return self._overwrite(self._struct._get_7bstr_len, (), self._struct.pack_7bstr, (string,))
+        start = self.tell()
+        return self.overwrite(start, start + self._get_7bstr_len(), self._struct.pack_7bstr(string))
         
     def skip_7bstr(self):
-        return self._skip(self._struct._get_7bstr_len, ())
+        return self.seek(self._get_7bstr_len(), 1)
         
     def delete_7bstr(self):
-        return self._delete(self._struct._get_7bstr_len, ())
+        return self.delete(self._get_7bstr_len())
         
 class Header:
     def __init__(self):
