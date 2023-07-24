@@ -181,9 +181,9 @@ class Entry(MemoryIO):
             
     def copy(self):
         if hasattr(self, 'resource'):
-            return Entry(self.type, self.group, self.instance, self.resource, self.name, self.read_all(), self.compressed)
+            return Entry(self.type, self.group, self.instance, self.resource, self.name, self.buffer, self.compressed)
         else:
-            return Entry(self.type, self.group, self.instance, name=self.name, content=self.read_all(), compressed=self.compressed)
+            return Entry(self.type, self.group, self.instance, name=self.name, content=self.buffer, compressed=self.compressed)
             
     #using C++ library from moreawesomethanyou   
     def compress(self):
@@ -191,7 +191,7 @@ class Entry(MemoryIO):
             return self
             
         else:
-            src = self.read_all()
+            src = self.buffer
             src_len = len(src)
             dst = ctypes.create_string_buffer(src_len)
             
@@ -206,7 +206,7 @@ class Entry(MemoryIO):
     #using C++ library from moreawesomethanyou 
     def decompress(self):
         if self.compressed:
-            src = self.read_all()
+            src = self.buffer
             compressed_size = len(src)
             
             self.seek(6)
@@ -403,8 +403,7 @@ class Package:
         results = search(self.entries, 0xE86B1EEF, get_first=True)
         
         if len(results) > 0:
-            i = results[0]
-            clst = self.entries[i]
+            clst = results[0]
             file_size = len(clst)
             
             if self.header.index_minor_version == 2:
@@ -557,7 +556,7 @@ class Package:
             #get new location to put in the index later
             entry.location = file.tell()
             
-            file.write(entry.read_all())
+            file.write(entry.buffer)
             
             #get new file size to put in the index later
             entry.size = file.tell() - entry.location
@@ -591,11 +590,11 @@ class Package:
         file.write_int(0, 12) #hole index entries
         
         with open(file_path, 'wb') as fs:
-            fs.write(file.read_all())
+            fs.write(file.buffer)
             
 def partial_decompress(entry, size=-1):
     if entry.compressed:
-        src = entry.read_all()  
+        src = entry.buffer  
         compressed_size = len(src)
         
         entry.seek(6)
@@ -623,8 +622,8 @@ def partial_decompress(entry, size=-1):
 def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='', get_first=False):
     entry_name = entry_name.lower()
     
-    indices = []
-    for i, entry in enumerate(entries):
+    results = []
+    for entry in entries:
         if type_id != -1 and type_id != entry.type:
             continue
             
@@ -640,12 +639,12 @@ def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, ent
         if entry_name != '' and entry_name not in entry.name.lower():
             continue
             
-        indices.append(i)
+        results.append(entry)
         
         if get_first:
-            return indices
+            return results
             
-    return indices
+    return results
     
 #for faster searching
 def build_index(entries):
@@ -692,7 +691,7 @@ def build_index(entries):
     return index
     
 #faster search
-def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name=''):
+def index_search(entries, index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name=''):
     results = []
     keys = ['types', 'groups', 'instances', 'resources']
     values = [type_id, group_id, instance_id, resource_id]
@@ -718,6 +717,6 @@ def index_search(index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1,
             results = set.intersection(*names_set)
             
         if len(entry_name) > 1:
-            return [i for i in results if entry_name in index['names list'][i]]
+            results = [i for i in results if entry_name in index['names list'][i]]
             
-    return list(results)
+    return [entries[i] for i in results]
