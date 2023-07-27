@@ -73,14 +73,13 @@ class ExtendedStruct(Struct):
         b = self.pack_str(string)
         return self.pack_7bint(len(b)) + b
         
-extended_struct = ExtendedStruct()
-
 class MemoryIO(StructIO):
-    def __init__(self, b=b'', struct=extended_struct):
-        super().__init__(b, struct)
+    def __init__(self, b=b'', endian='little'):
+        super().__init__(b)
+        self._struct = ExtendedStruct(endian)
         
     def copy(self):
-        return MemoryIO(self.getvalue(), self._struct)
+        return MemoryIO(self.getvalue(), self._struct.endian)
         
     def _get_7bstr_len(self):
         return self._struct._get_7bstr_len(self.getvalue(), start=self.tell())
