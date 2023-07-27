@@ -524,7 +524,7 @@ class Package:
         compressed_files = [entry for entry in self.entries if entry.compressed]
         
         if len(results) > 0:
-            self.entries.pop(results[0])
+            self.entries.remove(results[0])
             
         if len(compressed_files) > 0:
             clst = Entry(0xE86B1EEF, 0xE86B1EEF, 0x286B1F03)
