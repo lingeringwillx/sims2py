@@ -54,8 +54,6 @@ extern "C" {
     int try_compress(const byte* src, int srclen, byte* dst);
 }
 
-static const int MAX_FILE_SIZE = 0x40000000;
-
 /********************** low-level compression routines **********************/
 
 struct dbpf_compressed_file_header  // 9 bytes
