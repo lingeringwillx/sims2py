@@ -1,5 +1,4 @@
 /*
- * Implementation of the interface documented in dbpf.h.
  * Version 20070601.
  *
  * This file (with the exception of some parts adapted from zlib) is
@@ -8,18 +7,13 @@
  * later version. This code comes with NO WARRANTY. Make backups!
  */
 
-#include "dbpf.h"
-
 #include <string.h>  // for memcpy and memset
 #include <stdlib.h>
 
 //#include <assert.h>
 #define assert(expr) do{}while(0)
 
-
 // datatype assumptions: 8-bit bytes; sizeof(int) >= 4
-
-
 typedef unsigned char byte;
 struct word { byte lo,hi; };
 struct dword { word lo,hi; };
@@ -41,95 +35,6 @@ struct word3be { byte hi,mid,lo; };
 static inline unsigned get(const word3be& w3)   { return w3.hi * 65536 + w3.mid * 256 + w3.lo; }
 static inline void put(word3be& w3, unsigned x) { w3.hi = x >> 16; w3.mid = x >> 8; w3.lo = x; }
 
-struct dbpf_header    // 96 bytes
-{
-    dword magic;  // == DBPF_MAGIC
-    dword version_major, version_minor;    // 1.0 SC4, 1.1 TS2
-    byte reserved[12];
-    dword creation_date, modification_date;    // what format???
-    dword index_major;            // == 7
-    dword index_entry_count;
-    dword index_offset, index_size;
-    dword hole_entry_count;
-    dword hole_offset, hole_size;
-    dword index_minor;            // version 1.1+ only
-    byte reserved2[32];
-};
-
-#define DBPF_MAGIC 0x46504244  // "DBPF"
-
-struct dbpf_index_1    // 20 bytes
-{
-    dword type_id, group_id;
-    dword instance_id;
-    dword offset, size;
-};
-
-struct dbpf_index_2    // 24 bytes
-{
-    dword type_id, group_id;
-    dword instance_id, instance_id_2;
-    dword offset, size;
-};
-
-
-struct dbpf_compressed_dir_1    // 16 bytes
-{
-    dword type_id, group_id;
-    dword instance_id;
-    dword decompressed_size;
-};
-
-
-struct dbpf_compressed_dir_2    // 20 bytes
-{
-    dword type_id, group_id;
-    dword instance_id, instance_id_2;
-    dword decompressed_size;
-};
-
-
-struct dbpf_hole    // 8 bytes
-{
-    dword offset, size;
-};
-
-
-struct range { int ofs,len; };
-
-
-struct DBPF
-{
-    void* ctx;
-    int (*read)(void* ctx, int start, int length, void* buf, const char** error);
-    int (*write)(void* ctx, int start, int length, const void* buf, const char** error);
-    int (*close)(void* ctx);
-
-    int entry_count;
-    dbpf_entry* entries;
-
-    range index_range, hole_range, dir_range;  // for writing
-};
-
-
-static inline
-int call_read(DBPF* dbpf, int start, int length, void* buf, const char** error)
-{
-    return length ? dbpf->read(dbpf->ctx, start, length, buf, error) : 0;
-}
-
-static inline
-int call_write(DBPF* dbpf, int start, int length, const void* buf, const char** error)
-{
-    return length ? dbpf->write(dbpf->ctx, start, length, buf, error) : 0;
-}
-
-static inline
-int call_truncate(DBPF* dbpf, int pos, const char** error)
-{
-    return dbpf->write(dbpf->ctx, pos, 0, 0, error);
-}
-
 // Note that mynew and mydelete don't call the constructor or destructor (we don't have any)
 template<class T>
 static inline
@@ -144,15 +49,14 @@ static inline
 void mydelete(void* p) { if (p) free(p); }
 
 extern "C" {
-bool decompress(const byte* src, int compressed_size, byte* dst, int uncompressed_size, bool truncate);
-byte* compress(const byte* src, const byte* srcend, byte* dst, byte* dstend, bool pad);
-int try_compress(const byte* src, int srclen, byte* dst);
+	bool decompress(const byte* src, int compressed_size, byte* dst, int uncompressed_size, bool truncate);
+	byte* compress(const byte* src, const byte* srcend, byte* dst, byte* dstend, bool pad);
+	int try_compress(const byte* src, int srclen, byte* dst);
 }
 
 static const int MAX_FILE_SIZE = 0x40000000;
 
 /********************** low-level compression routines **********************/
-
 
 struct dbpf_compressed_file_header  // 9 bytes
 {
@@ -259,11 +163,11 @@ bool decompress(const byte* src, int compressed_size, byte* dst, int uncompresse
     }
 }
 
-
 /*
  * Try to compress the data and return the result in a buffer (which the
  * caller must delete). If it's uncompressable, return NULL.
  */
+ 
 int try_compress(const byte* src, int srclen, byte* dst)
 {
     // There are only 3 byte for the uncompressed size in the header,
@@ -286,8 +190,6 @@ int try_compress(const byte* src, int srclen, byte* dst)
     }
 }
 
-
-
 #define MAX_MATCH 1028
 #define MIN_MATCH 3
 
@@ -307,7 +209,6 @@ int try_compress(const byte* src, int srclen, byte* dst)
 #define W_SIZE 131072
 #define MAX_DIST W_SIZE
 #define W_MASK (W_SIZE-1)
-
 
 class Hash
 {
@@ -405,7 +306,6 @@ public:
     }
 };
 
-
 /*
  * The following two functions (longest_match and compress) are loosely
  * adapted from zlib 1.2.3's deflate.c, and are probably still covered by
@@ -440,7 +340,6 @@ public:
   Comments) 1950 to 1952 in the files http://www.ietf.org/rfc/rfc1950.txt
   (zlib format), rfc1951.txt (deflate format) and rfc1952.txt (gzip format).
 */
-
 
 static inline
 unsigned longest_match(
@@ -511,7 +410,6 @@ unsigned longest_match(
 
     return best_len;
 }
-
 
 /* Returns the end of the compressed data if successful, or NULL if we overran the output buffer */
 
