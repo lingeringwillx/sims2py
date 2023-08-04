@@ -49,9 +49,9 @@ static inline
 void mydelete(void* p) { if (p) free(p); }
 
 extern "C" {
-	bool decompress(const byte* src, int compressed_size, byte* dst, int uncompressed_size, bool truncate);
-	byte* compress(const byte* src, const byte* srcend, byte* dst, byte* dstend, bool pad);
-	int try_compress(const byte* src, int srclen, byte* dst);
+    bool decompress(const byte* src, int compressed_size, byte* dst, int uncompressed_size, bool truncate);
+    byte* compress(const byte* src, const byte* srcend, byte* dst, byte* dstend, bool pad);
+    int try_compress(const byte* src, int srclen, byte* dst);
 }
 
 static const int MAX_FILE_SIZE = 0x40000000;
