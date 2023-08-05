@@ -190,7 +190,7 @@ Deletes the 7-bit string existing at the current location.
 
 Decompresses *entry* up to *size*. If *size* is not specified, then the whole entry will be decompressed. Returns a MemoryIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
 
-**search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='', get_first=False)**
+**search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='', get_first=False)**
 
 Searches the a list of entries for the desired type, group, instance, or resource, returns a list of the entries matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first entry that it finds.
 
@@ -198,7 +198,7 @@ Searches the a list of entries for the desired type, group, instance, or resourc
 
 Returns an index that enables faster searching of *entries* using the *index_search* function. The returned index does NOT get updated when making changes to *entries* after the function is called.
 
-**index_search(entries, index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, file_name='')**
+**index_search(entries, index, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='')**
 
 Similar to the *search* function, but uses the index created by *build_index* for faster searching. Useful when you need to search a large package mutiple times.
 
