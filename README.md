@@ -58,7 +58,7 @@ Creates a copy of the package and returns it.
 
 **major_version** (int): Equal to 1.
 
-**minor_version** (int): Equal to 1.
+**minor_version** (int): Between 0 and 2.
 
 **major_user_version** (int): Equal to 0.
 
