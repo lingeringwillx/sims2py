@@ -193,11 +193,11 @@ int try_compress(const byte* src, int srclen, byte* dst)
 
 #define MIN_LOOKAHEAD (MAX_MATCH+MIN_MATCH+1)
 
-// corresponds to zlib compression level 9
-#define GOOD_LENGTH 32
-#define MAX_LAZY    258
-#define NICE_LENGTH 258
-#define MAX_CHAIN   4096
+// corresponds to zlib compression level 6
+#define GOOD_LENGTH 8
+#define MAX_LAZY    16
+#define NICE_LENGTH 128
+#define MAX_CHAIN   128
 
 #define HASH_BITS 16
 #define HASH_SIZE 65536
