@@ -59,52 +59,8 @@ class RepeatKeyError(Exception): pass
 class CompressionError(Exception): pass
 class NotSupportedError(Exception): pass
 
-class ExtendedStruct(Struct):
-    def _get_7bstr_len(self, b, start=0):
-        str_len, int_len = self.unpack_7bint(b, start)
-        return int_len + str_len
-        
-    def unpack_7bstr(self, b, start=0):
-        str_len, int_len = self.unpack_7bint(b, start)
-        string = self.unpack_str(b[(start + int_len):(start + int_len + str_len)])
-        return string, int_len + str_len
-        
-    def pack_7bstr(self, string):
-        b = self.pack_str(string)
-        return self.pack_7bint(len(b)) + b
-        
-class MemoryIO(StructIO):
-    def __init__(self, b=b'', endian='little'):
-        super().__init__(b)
-        self._struct = ExtendedStruct(endian)
-        
-    def copy(self):
-        return MemoryIO(self.getvalue(), self._struct.endian)
-        
-    def _get_7bstr_len(self):
-        return self._struct._get_7bstr_len(self.getvalue(), start=self.tell())
-        
-    def read_7bstr(self):
-        value, length = self._struct.unpack_7bstr(self.getvalue(), start=self.tell())
-        self.seek(length, 1)
-        return value
-        
-    def write_7bstr(self, string):
-        return self.write(self._struct.pack_7bstr(string))
-        
-    def append_7bstr(self, string):
-        return self.append(self._struct.pack_7bstr(string))
-        
-    def overwrite_7bstr(self, string):
-        start = self.tell()
-        return self.overwrite(start, start + self._get_7bstr_len(), self._struct.pack_7bstr(string))
-        
-    def skip_7bstr(self):
-        return self.seek(self._get_7bstr_len(), 1)
-        
-    def delete_7bstr(self):
-        return self.delete(self._get_7bstr_len())
-        
+struct = Struct()
+
 class Header:
     def __init__(self):
         self.major_version = 1
@@ -151,7 +107,7 @@ class Header:
             
         return header_copy
         
-class Entry(MemoryIO):
+class Entry(StructIO):
     def __init__(self, type_id, group_id, instance_id, resource_id=None, name='', content=b'', compressed=False):
         super().__init__(content)
         self.type = type_id
@@ -197,7 +153,8 @@ class Entry(MemoryIO):
             dst_len = clib.try_compress(src, src_len, dst)
             
             if dst_len > 0:
-                self.write_all(dst.raw[:dst_len])
+                self.buffer = dst.raw[:dst_len]
+                self.seek(0)
                 self.compressed = True
                 
                 return self
@@ -217,7 +174,8 @@ class Entry(MemoryIO):
             self.seek(0)
             
             if success:
-                self.write_all(dst.raw)
+                self.buffer = dst.raw
+                self.seek(0)
                 self.compressed = False
                 
                 return self
@@ -239,7 +197,7 @@ class Entry(MemoryIO):
                 
                 if location != -1:
                     file.seek(location + 19)
-                    self.name = file.read_7bstr()
+                    self.name = file.read_str(file.read_7bint())
                     
             elif self.type in named_cpf_types:
                 file = partial_decompress(self)
@@ -286,7 +244,9 @@ class Entry(MemoryIO):
             
             if location != -1:
                 self.seek(location + 19)
-                self.overwrite_7bstr(name)
+                b_name = struct.pack_str(name)
+                self.overwrite_7bint(len(b_name))
+                self.overwrite_7bstr(b_name)
                 self.seek(0)
                 self.name = name
                 
@@ -331,7 +291,7 @@ class Package:
         
     def unpack(file_path, decompress=False):
         with open(file_path, 'rb') as fs:
-            file = MemoryIO(fs.read())
+            file = StructIO(fs.read())
             
         self = Package()
         
@@ -361,18 +321,17 @@ class Package:
         
         file.seek(self.header.index_location)
         for i in range(self.header.index_entry_count):
-            #using int.from_bytes and file.read instead of read_int to avoid the function call overhead
-            type_id = int.from_bytes(file.read(4), 'little')
-            group_id = int.from_bytes(file.read(4), 'little')
-            instance_id = int.from_bytes(file.read(4), 'little')
+            type_id = file.read_int(4)
+            group_id = file.read_int(4)
+            instance_id = file.read_int(4)
             
             if self.header.index_minor_version == 2:
-                resource_id = int.from_bytes(file.read(4), 'little')
+                resource_id = file.read_int(4)
             else:
                 resource_id = None
                 
-            location = int.from_bytes(file.read(4), 'little')
-            size = int.from_bytes(file.read(4), 'little')
+            location = file.read_int(4)
+            size = file.read_int(4)
             
             position = file.tell()
             file.seek(location)
@@ -497,7 +456,7 @@ class Package:
                     self.header.index_minor_version = 2
                     break
                     
-        file = MemoryIO()
+        file = StructIO()
         
         #write header
         file.write(b'DBPF')
@@ -608,7 +567,7 @@ def partial_decompress(entry, size=-1):
         entry.seek(0)
         
         if success:
-            return MemoryIO(dst.raw)
+            return StructIO(dst.raw)
         else:
             raise CompressionError('Could not decompress the file')
             
@@ -616,7 +575,7 @@ def partial_decompress(entry, size=-1):
         entry.seek(0)
         buffer = entry.read(size)
         entry.seek(0)
-        return MemoryIO(buffer)
+        return StructIO(buffer)
         
 def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='', get_first=False):
     entry_name = entry_name.lower()

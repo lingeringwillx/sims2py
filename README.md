@@ -18,7 +18,7 @@
 
 **Installation:**
 
-Download the build and place it in a folder named 'dbpf'. Outside the folder, create a python file and write import dbpf to import the library.
+Download the build and place it in a folder named 'dbpf'. Outside the folder, create a python file and write `import dbpf` to import the library.
 
 # Objects
 
@@ -100,7 +100,7 @@ Creates a copy of the header and returns it.
 
 ## Entry
 
-Inherits from [MemoryIO](#MemoryIO).
+Inherits from [StructIO](https://github.com/lingeringwillx/StructIO).
 
 ### Attributes
 
@@ -141,48 +141,6 @@ Reads the name of the entry from it's content and writes it to *name*. Returns t
 **write_name(name)**
 
 Writes *name* to the entry's content. Only works with supported entry types.
-
-## MemoryIO
-
-File-like object stored in memory, based on [StructIO](https://github.com/lingeringwillx/StructIO) with some added methods listed here.
-
-### Attributes
-
-**endian**: specifies the default endian that would be used by the object, can either be *'little'* or *'big'*.
-
-**encoding**: specifies the default encoding used by string methods.
-
-**errors**: specifies default error handling behavior when encoding or decoding strings. More information could be found in [Python's documentation](https://docs.python.org/3/library/codecs.html#error-handlers).
-
-### Methods
-
-**MemoryIO(b=b'')**
-
-Take bytes object *b* and returns a *MemoryIO* object containing *b*.
-
-**read_7bstr()**
-
-Reads a [7-bit string](https://modthesims.info/wiki.php?title=7BITSTR) from the entry and returns it as a string object.
-
-**write_7bstr(string)**
-
-Writes *string* into the entry in the 7-bit string format.
-
-**append_7bstr(string)**
-
-Same as *write_7bstr* but appends the value to the entry at the current position instead of overwriting existing bytes.
-
-**overwrite_7bstr(string)**
-
-Deletes the 7-bit string existing at the current location and writes *string* as a 7-bit string in it's place.
-
-**skip_7bstr()**
-
-Skips the 7-bit string existing at the current location.
-
-**delete_7bstr()**
-
-Deletes the 7-bit string existing at the current location.
 
 # Functions
 
