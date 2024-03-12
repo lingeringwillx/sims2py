@@ -10,7 +10,7 @@ contains Header and Entry
 
 Header:
 major_version = int #1
-minor_version = int #1
+minor_version = int #between 0 and 2
 major_user_version = int #0
 minor_user_version = int #0
 flags = int #unknown
@@ -46,20 +46,18 @@ named_rcol_types = {0xFB00791E, 0x4D51F042, 0xE519C933, 0xAC4F8687, 0x7BA3838C, 
 named_cpf_types = {0x2C1FD8A1, 0x0C1FE246, 0xEBCF3E27}
 lua_types = {0x9012468A, 0x9012468B}
 
-is_64bit = sys.maxsize > 2 ** 32
+_is_64bit = sys.maxsize > 2 ** 32
 
-if is_64bit:
-    clib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(__file__),'dbpf64.dll'))
+if _is_64bit:
+    _clib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(__file__),'dbpf64.dll'))
 else:
-    clib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(__file__),'dbpf32.dll'))
+    _clib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(__file__),'dbpf32.dll'))
     
-clib.decompress.restype = ctypes.c_bool
+_clib.decompress.restype = ctypes.c_bool
 
 class RepeatKeyError(Exception): pass
 class CompressionError(Exception): pass
 class NotSupportedError(Exception): pass
-
-struct = Struct()
 
 class Header:
     def __init__(self):
@@ -108,20 +106,14 @@ class Header:
         return header_copy
         
 class Entry(StructIO):
-    def __init__(self, type_id, group_id, instance_id, resource_id=None, name='', content=b'', compressed=False):
+    def __init__(self, type_id, group_id, instance_id, resource_id=0, name='', content=b'', compressed=False):
         super().__init__(content)
         self.type = type_id
         self.group = group_id
         self.instance = instance_id
-        
-        if resource_id is not None:
-            self.resource = resource_id
-            
+        self.resource = resource_id
         self.name = name
         self.compressed = compressed
-        
-    def __contains__(self, key):
-        return hasattr(self, key)
         
     def __str__(self):
         if self.name == '':
@@ -129,17 +121,11 @@ class Entry(StructIO):
         else:
             name_display = '{}\n'.format(self.name)
             
-        if hasattr(self, 'resource'):
-            return name_display + 'Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(self.type, self.group, self.instance, self.resource)
-        else:
-            return name_display + 'Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}'.format(self.type, self.group, self.instance)
-            
+        return name_display + 'Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(self.type, self.group, self.instance, self.resource)
+        
     def copy(self):
-        if hasattr(self, 'resource'):
-            return Entry(self.type, self.group, self.instance, self.resource, self.name, self.buffer, self.compressed)
-        else:
-            return Entry(self.type, self.group, self.instance, name=self.name, content=self.buffer, compressed=self.compressed)
-            
+        return Entry(self.type, self.group, self.instance, self.resource, self.name, self.buffer, self.compressed)
+        
     #using C++ library from moreawesomethanyou   
     def compress(self):
         if self.compressed or self.type == 0xE86B1EEF:
@@ -150,7 +136,7 @@ class Entry(StructIO):
             src_len = len(src)
             dst = ctypes.create_string_buffer(src_len)
             
-            dst_len = clib.try_compress(src, src_len, dst)
+            dst_len = _clib.try_compress(src, src_len, dst)
             
             if dst_len > 0:
                 self.buffer = dst.raw[:dst_len]
@@ -169,7 +155,7 @@ class Entry(StructIO):
             uncompressed_size = self.read_int(3, 'big')
             
             dst = ctypes.create_string_buffer(uncompressed_size)
-            success = clib.decompress(src, compressed_size, dst, uncompressed_size, False)
+            success = _clib.decompress(src, compressed_size, dst, uncompressed_size, False)
             
             self.seek(0)
             
@@ -193,10 +179,10 @@ class Entry(StructIO):
                 
             elif self.type in named_rcol_types:
                 file = partial_decompress(self)
-                location = file.find(b'cSGResource')
+                location = file.find(b'\x0bcSGResource')
                 
                 if location != -1:
-                    file.seek(location + 19)
+                    file.seek(location + 20)
                     self.name = file.read_str(file.read_7bint())
                     
             elif self.type in named_cpf_types:
@@ -220,63 +206,6 @@ class Entry(StructIO):
             
         return self.name
         
-    def write_name(self, name):
-        was_compressed = self.compressed
-        
-        if self.type in named_types:
-            if self.compressed:
-                self.decompress()
-                
-            if len(name) <= 64:
-                self.seek(0)
-                self.write_str(name)
-                self.write_int(0, 64 - len(name))
-                self.seek(0)
-                self.name = name
-            else:
-                raise ValueError("file name '{}' is longer than expected".format(name))
-                
-        elif self.type in named_rcol_types:
-            if self.compressed:
-                self.decompress()
-                
-            location = self.find(b'cSGResource')
-            
-            if location != -1:
-                self.seek(location + 19)
-                b_name = struct.pack_str(name)
-                self.overwrite_7bint(len(b_name))
-                self.overwrite_7bstr(b_name)
-                self.seek(0)
-                self.name = name
-                
-        elif self.type in named_cpf_types:
-            if self.compressed:
-                self.decompress()
-                
-            location = self.find(b'\x18\xea\x8b\x0b\x04\x00\x00\x00name')
-            
-            if location != -1:
-                self.seek(location + 12)
-                self.overwrite_pstr(name, 4)
-                self.seek(0)
-                self.name = name
-                
-        elif self.type in lua_types:
-            if self.compressed:
-                self.decompress()
-                
-            self.seek(4)
-            self.overwrite_pstr(name, 4)
-            self.seek(0)
-            self.name = name
-            
-        else:
-            raise NotSupportedError('naming format 0x{:08X} is not supported'.format(self.type))
-            
-        if was_compressed:
-            self.compress()
-            
 class Package:
     def __init__(self):
         self.header = Header()
@@ -289,13 +218,13 @@ class Package:
         
         return package_copy
         
-    def unpack(file_path, decompress=False):
+    def unpack(file_path, decompress=False, read_names=False):
         with open(file_path, 'rb') as fs:
             file = StructIO(fs.read())
             
         self = Package()
         
-        self.file_name = os.path.basename(file_path)
+        self.file_path = file_path
         
         #read header
         file.seek(4)
@@ -324,11 +253,10 @@ class Package:
             type_id = file.read_int(4)
             group_id = file.read_int(4)
             instance_id = file.read_int(4)
+            resource_id = 0
             
             if self.header.index_minor_version == 2:
                 resource_id = file.read_int(4)
-            else:
-                resource_id = None
                 
             location = file.read_int(4)
             size = file.read_int(4)
@@ -372,32 +300,20 @@ class Package:
                 tgi_size = 12
             
             clst.seek(0)
+            
             for i in range(file_size // entry_size):
                 entry = clst.read(tgi_size)
-                
-                if entry not in clst_entries:
-                    clst_entries.add(entry)
-                else:
-                    raise RepeatKeyError('Two entries with matching type, group, and instance found')
-                    
+                clst_entries.add(entry)
                 clst.seek(4, 1)
                 
             clst.seek(0)
             
         #check if compressed
         for index_entry, entry in zip(index_entries, self.entries):
-            entry.compressed = False
+            #entries can be in the CLST file even if they're not compressed
+            #so a second check for compression would be good
+            entry.compressed = index_entry in clst_entries and entry.buffer[4:6] == b'\x10\xfb'
             
-            if index_entry in clst_entries:
-                entry.seek(4)
-                
-                #entries can be in the CLST file even if they're not compressed
-                #so a second check for compression would be good
-                if entry.read(2) == b'\x10\xfb':
-                    entry.compressed = True
-                    
-                entry.seek(0)
-                
         #decompress entries
         if decompress:
             for entry in self.entries:
@@ -407,13 +323,13 @@ class Package:
                     pass
                     
         #read file names
-        for entry in self.entries:
-            try:
-                #print(entry)
-                entry.read_name()
-            except CompressionError:
-                pass
-                
+        if read_names:
+            for entry in self.entries:
+                try:
+                    entry.read_name()
+                except CompressionError:
+                    pass
+                    
         return self 
         
     def pack_into(self, file_path, compress=False):
@@ -421,11 +337,8 @@ class Package:
         if compress:
             compressed_entries = {} #for checking if the a compressed entry with the same TGI already exists
             for i, entry in enumerate(self.entries):
-                if 'resource' in entry:
-                    tgi = (entry.type, entry.group, entry.instance, entry.resource)
-                else:
-                    tgi = (entry.type, entry.group, entry.instance)
-                    
+                tgi = (entry.type, entry.group, entry.instance, entry.resource)
+                
                 if tgi in compressed_entries:
                     i = compressed_entries[tgi]
                     self.entries[i].decompress()
@@ -439,11 +352,8 @@ class Package:
             compressed_entries = set()
             for entry in self.entries:
                 if entry.compressed:
-                    if 'resource' in entry:
-                        tgi = (entry.type, entry.group, entry.instance, entry.resource)
-                    else:
-                        tgi = (entry.type, entry.group, entry.instance)
-                        
+                    tgi = (entry.type, entry.group, entry.instance, entry.resource)
+                    
                     if tgi in compressed_entries:
                         raise RepeatKeyError('Repeat compressed entry found in package')
                     else:
@@ -452,7 +362,7 @@ class Package:
         #use index minor version 2?
         if self.header.index_minor_version != 2:
             for entry in self.entries:
-                if 'resource' in entry:
+                if entry.resource != 0:
                     self.header.index_minor_version = 2
                     break
                     
@@ -486,22 +396,16 @@ class Package:
             self.entries.remove(results[0])
             
         if len(compressed_files) > 0:
-            clst = Entry(0xE86B1EEF, 0xE86B1EEF, 0x286B1F03)
+            clst = Entry(0xE86B1EEF, 0xE86B1EEF, 0x286B1F03, 0x00000000)
             
-            if self.header.index_minor_version == 2:
-                clst.resource = 0x00000000
-                
             for compressed_file in compressed_files:
                 clst.write_int(compressed_file.type, 4)
                 clst.write_int(compressed_file.group, 4)
                 clst.write_int(compressed_file.instance, 4)
                 
                 if self.header.index_minor_version == 2:
-                    if 'resource' in compressed_file:
-                        clst.write_int(compressed_file.resource, 4)
-                    else:
-                        clst.write_int(0, 4)
-                        
+                    clst.write_int(compressed_file.resource, 4)
+                    
                 #uncompressed size is written in big endian?
                 compressed_file.seek(6)
                 uncompressed_size = compressed_file.read_int(3, 'big')
@@ -528,11 +432,8 @@ class Package:
             file.write_int(entry.instance, 4)
             
             if self.header.index_minor_version == 2:
-                if 'resource' in entry:
-                    file.write_int(entry.resource, 4)
-                else:
-                    file.write_int(0, 4)
-                    
+                file.write_int(entry.resource, 4)
+                
             file.write_int(entry.location, 4)
             file.write_int(entry.size, 4)
             
@@ -562,7 +463,7 @@ def partial_decompress(entry, size=-1):
             size = uncompressed_size
             
         dst = ctypes.create_string_buffer(size)
-        success = clib.decompress(src, compressed_size, dst, size, True)
+        success = _clib.decompress(src, compressed_size, dst, size, True)
         
         entry.seek(0)
         
@@ -632,12 +533,11 @@ def build_index(entries):
             index['instances'][entry.instance] = set()
             
         index['instances'][entry.instance].add(i)
+        
+        if entry.resource not in index['resources']:
+            index['resources'][entry.resource] = set()
             
-        if 'resource' in entry:
-            if entry.resource not in index['resources']:
-                index['resources'][entry.resource] = set()
-                
-            index['resources'][entry.resource].add(i)
+        index['resources'][entry.resource].add(i)
             
         name = entry.name.lower()
         index['names list'].append(name)

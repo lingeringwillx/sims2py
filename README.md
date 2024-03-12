@@ -32,7 +32,7 @@ Creates an object resembling the structure of a *.package* file.
 
 **entries** (list\[Entry]): Contains instances of [Entry](#Entry).
 
-**file_name** (str): The name of the file that was used to create the Package object.
+**file_path** (str): The path of the file that was used to create the Package object.
 
 ### Methods
 
@@ -40,9 +40,9 @@ Creates an object resembling the structure of a *.package* file.
 
 Creates a Package object containing the data required to make an empty package file.
 
-**Package.unpack(file_path, decompress=False)**
+**Package.unpack(file_path, decompress=False, read_names=False)**
 
-Static method. Reads a package file from the provided *file_path* and returns a *Package* object containing its data. If *decompress* is True, then all of the package's entries will be decompressed.
+Static method. Reads a package file from the provided *file_path* and returns a *Package* object containing its data. If *decompress* is True, then all of the package's entries will be decompressed. If *read_names* is set to True, then the method will try to get all the names of the package's entries. Note that reading the names of the entries is slow.
 
 **pack_into(file_path, compress=False)**
 
@@ -110,7 +110,7 @@ Inherits from [StructIO](https://github.com/lingeringwillx/StructIO).
 
 **instance** (int): Entry instance.
 
-**resource** (int): Entry resource, only exists if the *index minor version* of the *header* is 2.
+**resource** (int): Entry resource.
 
 **compressed** (bool): Indicates whether the entry is compressed or not.
 
@@ -118,7 +118,7 @@ Inherits from [StructIO](https://github.com/lingeringwillx/StructIO).
 
 ### Methods
 
-**Entry(type_id, group_id, instance_id, resource_id=None, name='', content=b'', compressed=False)**
+**Entry(type_id, group_id, instance_id, resource_id=0, name='', content=b'', compressed=False)**
 
 Creates an entry containing the provided arguments.
 
@@ -137,10 +137,6 @@ Decompresses the content of the entry. If the content of the entry is already de
 **read_name()**
 
 Reads the name of the entry from it's content and writes it to *name*. Returns the name of the entry if the entry's type is supported, otherwise returns an empty string.
-
-**write_name(name)**
-
-Writes *name* to the entry's content. Only works with supported entry types.
 
 # Functions
 
