@@ -142,11 +142,11 @@ Reads the name of the entry from it's content and writes it to *name*. Returns t
 
 **partial_decompress(entry, size=-1)**
 
-Decompresses *entry* up to *size*. If *size* is not specified, then the whole entry will be decompressed. Returns a MemoryIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
+Decompresses *entry* up to *size*. If *size* is not specified, then the whole entry will be decompressed. Returns a StructIO object containing the decompressed bytes. Unlike the *decompress* function, this function does not overwrite the contents of *entry*.
 
 **search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='', get_first=False)**
 
-Searches the a list of entries for the desired type, group, instance, or resource, returns a list of the entries matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *file_name* is specified, then the function will check if the names of supported file types contain *file_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first entry that it finds.
+Searches the a list of entries for the desired type, group, instance, or resource, returns a list of the entries matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *entry_name* is specified, then the function will check if the names of supported file types contain *entry_name*. If *get_first* is set to *True*, then the function will directly return a list containing the first entry that it finds.
 
 **build_index(entries)**
 
