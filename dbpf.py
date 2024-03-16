@@ -30,7 +30,7 @@ Entry:
 type: int #entry type
 group: int #entry group
 instance: int #entry instance
-resource: int #entry resource, only exists if the index minor version is 2
+resource: int #entry resource
 compressed = bool #indicates whether the entry is compressed or not
 name = str #name of entry
 """
