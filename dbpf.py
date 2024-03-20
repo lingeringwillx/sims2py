@@ -309,10 +309,8 @@ class Package:
             clst.seek(0)
             
         #check if compressed
-        for index_entry, entry in zip(index_entries, self.entries):
-            #entries can be in the CLST file even if they're not compressed
-            #so a second check for compression would be good
-            entry.compressed = index_entry in clst_entries and entry.buffer[4:6] == b'\x10\xfb'
+        for entry, index_entry in zip(self.entries, index_entries):
+            entry.compressed = index_entry in clst_entries
             
         #decompress entries
         if decompress:
@@ -420,7 +418,7 @@ class Package:
             
             file.write(entry.buffer)
             
-            #get new file size to put in the index later
+            #get new entry size to put in the index later
             entry.size = file.tell() - entry.location
             
         #write index
@@ -438,8 +436,6 @@ class Package:
             file.write_int(entry.size, 4)
             
         index_end = file.tell()
-        
-        file.truncate()
         
         #update header index info, clear holes index info
         file.seek(36)
