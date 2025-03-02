@@ -19,11 +19,11 @@ class CompressionError(Exception): pass
 
 qfs = ctypes.CDLL(os.path.join(os.path.dirname(__file__), 'qfs.dll'))
 
-qfs.compress.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_int]
-qfs.compress.restype = ctypes.c_int
+qfs.qfs_compress.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_int]
+qfs.qfs_compress.restype = ctypes.c_int
 
-qfs.decompress.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_int]
-qfs.decompress.restype = ctypes.c_bool
+qfs.qfs_decompress.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_int]
+qfs.qfs_decompress.restype = ctypes.c_bool
 
 class Header:
     def __init__(self):
@@ -102,7 +102,7 @@ class Entry(StructIO):
             dst_len = src_len - 1 #should be smaller, otherwise keep it uncompressed
             dst = (ctypes.c_char * dst_len)()
 
-            dst_len = qfs.compress(src, src_len, dst, dst_len)
+            dst_len = qfs.qfs_compress(src, src_len, dst, dst_len)
 
             if dst_len:
                 self.buffer = dst[:dst_len]
@@ -121,7 +121,7 @@ class Entry(StructIO):
             self.seek(0)
 
             dst = (ctypes.c_char * dst_len)()
-            success = qfs.decompress(src, src_len, dst, dst_len)
+            success = qfs.qfs_decompress(src, src_len, dst, dst_len)
 
             if success:
                 self.buffer = dst

@@ -16,8 +16,8 @@
 typedef unsigned char byte;
 
 extern "C" {
-    bool decompress(const byte* src, int srclen, byte* dst, int dstlen);
-    int compress(const byte* src, int srclen, byte* dst, int dstlen);
+    bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen);
+    int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen);
 }
 
 // datatype assumptions: 8-bit bytes; sizeof(int) >= 4
@@ -51,14 +51,14 @@ void mydelete(void* p) { if (p) free(p); }
 
 struct dbpf_compressed_file_header  // 9 bytes
 {
-    dword srclen;
+    dword compressed_size;
     word compression_id;       // DBPF_COMPRESSION_QFS
-    word3be dstlen;
+    word3be uncompressed_size;
 };
 
 #define DBPF_COMPRESSION_QFS (0xFB10)
 
-bool decompress(const byte* src, int srclen, byte* dst, int dstlen)
+bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen)
 {
     const byte* src_end = src + srclen;
     byte* dst_end = dst + dstlen;
@@ -71,7 +71,7 @@ bool decompress(const byte* src, int srclen, byte* dst, int dstlen)
     if (get(hdr->compression_id) != DBPF_COMPRESSION_QFS)
         return false;
 
-    int hdr_c_size = get(hdr->srclen), hdr_uc_size = get(hdr->dstlen);
+    int hdr_c_size = get(hdr->uncompressed_size), hdr_uc_size = get(hdr->compressed_size);
     if (hdr_c_size != srclen || hdr_uc_size != dstlen)
         return false;
 
@@ -369,7 +369,7 @@ unsigned longest_match(
  * caller must delete). If it's uncompressable, return NULL.
  */
 
-int compress(const byte* src, int srclen, byte* dst, int dstlen)
+int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen)
 {
     // There are only 3 byte for the uncompressed size in the header,
     // so I guess we can only compress files smaller than 16MB...
@@ -452,9 +452,9 @@ int compress(const byte* src, int srclen, byte* dst, int dstlen)
     byte* dstsize = compressed_output.get_end();
 
     dbpf_compressed_file_header* hdr = (dbpf_compressed_file_header*)dst;
-    put(hdr->srclen, dstsize - dst);
+    put(hdr->uncompressed_size, dstsize - dst);
     put(hdr->compression_id, DBPF_COMPRESSION_QFS);
-    put(hdr->dstlen, srcend-src);
+    put(hdr->compressed_size, srcend-src);
 
     return dstsize - dst;
 }
