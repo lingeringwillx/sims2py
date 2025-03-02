@@ -64,7 +64,7 @@ Inherits from [StructIO](https://github.com/lingeringwillx/StructIO).
 
 **compressed** (bool): Indicates whether the entry is compressed or not.
 
-**name** (str): Contains the name of the entry for supported entry types. Keep in mind that changing this value will not change the actual name in the entry's content. To apply the new name to the entry, use the *write_name* function.
+**name** (str): Contains the name of the entry for supported entry types. Keep in mind that changing this value will not change the actual name in the entry's content.
 
 ### Methods
 
