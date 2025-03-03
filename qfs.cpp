@@ -1,5 +1,5 @@
 /*
- * Version 20070601.
+ * Implementation of the interface documented in qfs.h.
  *
  * This file (with the exception of some parts adapted from zlib) is
  * Copyright 2007 Ben Rudiak-Gould. Anyone may use it under the terms of
@@ -7,27 +7,29 @@
  * later version. This code comes with NO WARRANTY. Make backups!
  */
 
+#include "qfs.h"
+
 #include <string.h>  // for memcpy and memset
 #include <stdlib.h>
 
 //#include <assert.h>
 #define assert(expr) do{}while(0)
 
-typedef unsigned char byte;
-
-extern "C" {
-    bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen);
-    int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen);
-}
-
 // datatype assumptions: 8-bit bytes; sizeof(int) >= 4
 struct word { byte lo,hi; };
 struct dword { word lo,hi; };
 
-static inline unsigned get(const word& w)     { return w.lo + w.hi * 256; }
-static inline unsigned get(const dword& dw)   { return get(dw.lo) + get(dw.hi) * 65536; }
-static inline void put(word& w, unsigned x)   { w.lo = x; w.hi = x >> 8; }
-static inline void put(dword& dw, unsigned x) { put(dw.lo, x); put(dw.hi, x >> 16); }
+#ifdef _X86_   // little-endian and no alignment restrictions
+  static inline unsigned get(const word& w)     { return *(const unsigned short*)&w; }
+  static inline unsigned get(const dword& dw)   { return *(const unsigned*)&dw; }
+  static inline void put(word& w, unsigned x)   { *(unsigned short*)&w = x; }
+  static inline void put(dword& dw, unsigned x) { *(unsigned*)&dw = x; }
+#else
+  static inline unsigned get(const word& w)     { return w.lo + w.hi * 256; }
+  static inline unsigned get(const dword& dw)   { return get(dw.lo) + get(dw.hi) * 65536; }
+  static inline void put(word& w, unsigned x)   { w.lo = x; w.hi = x >> 8; }
+  static inline void put(dword& dw, unsigned x) { put(dw.lo, x); put(dw.hi, x >> 16); }
+#endif
 
 struct word3be { byte hi,mid,lo; };
 
@@ -47,6 +49,8 @@ T* mynew(int n)
 static inline
 void mydelete(void* p) { if (p) free(p); }
 
+static byte* compress(const byte* src, const byte* srcend, byte* dst, byte* dstend, bool pad);
+
 /********************** low-level compression routines **********************/
 
 struct dbpf_compressed_file_header  // 9 bytes
@@ -58,22 +62,26 @@ struct dbpf_compressed_file_header  // 9 bytes
 
 #define DBPF_COMPRESSION_QFS (0xFB10)
 
-bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen)
-{
-    const byte* src_end = src + srclen;
-    byte* dst_end = dst + dstlen;
+bool decompress(const byte* src, int compressed_size, byte* dst, int uncompressed_size, bool truncate) {
+    const byte* src_end = src + compressed_size;
+    byte* dst_end = dst + uncompressed_size;
     byte* dst_start = dst;
 
-    if (srclen < (int)sizeof(dbpf_compressed_file_header) + 1)
+    if (compressed_size < (int)sizeof(dbpf_compressed_file_header) + 1)
         return false;
     const dbpf_compressed_file_header* hdr = (const dbpf_compressed_file_header*)src;
 
     if (get(hdr->compression_id) != DBPF_COMPRESSION_QFS)
         return false;
 
-    int hdr_c_size = get(hdr->uncompressed_size), hdr_uc_size = get(hdr->compressed_size);
-    if (hdr_c_size != srclen || hdr_uc_size != dstlen)
-        return false;
+    int hdr_c_size = get(hdr->compressed_size), hdr_uc_size = get(hdr->uncompressed_size);
+    if (truncate) {
+        if (hdr_c_size < compressed_size || hdr_uc_size < uncompressed_size)
+            return false;
+    } else {
+        if (hdr_c_size != compressed_size || hdr_uc_size != uncompressed_size)
+            return false;
+    }
 
     src += sizeof(dbpf_compressed_file_header);
 
@@ -112,6 +120,8 @@ bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen)
             offset = 0;
         }
         if (src + lit > src_end || dst + lit + copy > dst_end) {
+            if (!truncate)
+                return false;
             if (lit > dst_end - dst)
                 lit = dst_end - dst;
             if (copy > dst_end - dst - lit)
@@ -138,9 +148,29 @@ bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen)
         }
     } while (src < src_end && dst < dst_end);
 
-    while (src < src_end && *src == 0xFC)
-        ++src;
-    return (src == src_end && dst == dst_end);
+    if (truncate) {
+        return (dst == dst_end);
+    } else {
+        while (src < src_end && *src == 0xFC)
+            ++src;
+        return (src == src_end && dst == dst_end);
+    }
+}
+
+/*
+ * Try to compress the data and return the result in a buffer. If it's uncompressable, return 0.
+ */
+int try_compress(const byte* src, int srclen, byte* dst, int dstlen) {
+    // There are only 3 byte for the uncompressed size in the header,
+    // so I guess we can only compress files larger than 16MB...
+    if (srclen < 14 || srclen >= 16777216) return 0;
+
+    byte* dstend = compress(src, src+srclen, dst, dst+dstlen, false);
+    if (dstend) {
+        return dstend - dst;
+    } else {
+        return 0;
+    }
 }
 
 #define MAX_MATCH 1028
@@ -163,100 +193,97 @@ bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen)
 #define MAX_DIST W_SIZE
 #define W_MASK (W_SIZE-1)
 
-class Hash
-{
-private:
-    unsigned hash;
-    int *head, *prev;
-public:
-    Hash() {
-        hash = 0;
-        head = mynew<int>(HASH_SIZE);
-        for (int i=0; i<HASH_SIZE; ++i)
-            head[i] = -1;
-        prev = mynew<int>(W_SIZE);
-    }
-    ~Hash() {
-        mydelete(head);
-        mydelete(prev);
-    }
+class Hash {
+	private:
+		unsigned hash;
+		int *head, *prev;
 
-    int getprev(unsigned pos) const { return prev[pos & W_MASK]; }
+	public:
+		Hash() {
+			hash = 0;
+			head = mynew<int>(HASH_SIZE);
+			for (int i=0; i<HASH_SIZE; ++i)
+				head[i] = -1;
+			prev = mynew<int>(W_SIZE);
+		}
+		~Hash() {
+			mydelete(head);
+			mydelete(prev);
+		}
 
-    void update(unsigned c) {
-        hash = ((hash << HASH_SHIFT) ^ c) & HASH_MASK;
-    }
+		int getprev(unsigned pos) const { return prev[pos & W_MASK]; }
 
-    int insert(unsigned pos) {
-        int match_head = prev[pos & W_MASK] = head[hash];
-        head[hash] = pos;
-        return match_head;
-    }
+		void update(unsigned c) {
+			hash = ((hash << HASH_SHIFT) ^ c) & HASH_MASK;
+		}
+
+		int insert(unsigned pos) {
+			int match_head = prev[pos & W_MASK] = head[hash];
+			head[hash] = pos;
+			return match_head;
+		}
 };
 
-class CompressedOutput
-{
-private:
+class CompressedOutput {
+	private:
+		byte* dstpos;
+		byte* dstend;
+		const byte* src;
+		unsigned srcpos;
 
-    byte* dstpos;
-    byte* dstend;
-    const byte* src;
-    unsigned srcpos;
+	public:
+		CompressedOutput(const byte* src_, byte* dst, byte* dstend_) {
+			dstpos = dst; dstend = dstend_; src = src_;
+			srcpos = 0;
+		}
 
-public:
+		byte* get_end() { return dstpos; }
 
-    CompressedOutput(const byte* src_, byte* dst, byte* dstend_) {
-        dstpos = dst; dstend = dstend_; src = src_;
-        srcpos = 0;
-    }
+		bool emit(unsigned from_pos, unsigned to_pos, unsigned count)
+		{
+			if (count)
+				assert(memcmp(src + from_pos, src + to_pos, count) == 0);
 
-    byte* get_end() { return dstpos; }
+			unsigned lit = to_pos - srcpos;
 
-    bool emit(unsigned from_pos, unsigned to_pos, unsigned count)
-    {
-        if (count)
-            assert(memcmp(src + from_pos, src + to_pos, count) == 0);
+			while (lit >= 4) {
+				unsigned amt = lit>>2;
+				if (amt > 28) amt = 28;
+				if (dstpos + amt*4 >= dstend) return false;
+				*dstpos++ = 0xE0 + amt - 1;
+				memcpy(dstpos, src + srcpos, amt*4);
+				dstpos += amt*4;
+				srcpos += amt*4;
+				lit -= amt*4;
+			}
 
-        unsigned lit = to_pos - srcpos;
+			unsigned offset = to_pos - from_pos - 1;
 
-        while (lit >= 4) {
-            unsigned amt = lit>>2;
-            if (amt > 28) amt = 28;
-            if (dstpos + amt*4 >= dstend) return false;
-            *dstpos++ = 0xE0 + amt - 1;
-            memcpy(dstpos, src + srcpos, amt*4);
-            dstpos += amt*4;
-            srcpos += amt*4;
-            lit -= amt*4;
-        }
+			if (count == 0) {
+				if (dstpos+1+lit > dstend) return false;
+				*dstpos++ = 0xFC + lit;
+			} else if (offset < 1024 && 3 <= count && count <= 10) {
+				if (dstpos+2+lit > dstend) return false;
+				*dstpos++ = ((offset >> 3) & 0x60) + ((count-3) * 4) + lit;
+				*dstpos++ = offset;
+			} else if (offset < 16384 && 4 <= count && count <= 67) {
+				if (dstpos+3+lit > dstend) return false;
+				*dstpos++ = 0x80 + (count-4);
+				*dstpos++ = lit * 0x40 + (offset >> 8);
+				*dstpos++ = offset;
+			} else /* if (offset < 131072 && 5 <= count && count <= 1028) */ {
+				if (dstpos+4+lit > dstend) return false;
+				*dstpos++ = 0xC0 + ((offset >> 12) & 0x10) + (((count-5) >> 6) & 0x0C) + lit;
+				*dstpos++ = offset >> 8;
+				*dstpos++ = offset;
+				*dstpos++ = (count-5);
+			}
 
-        unsigned offset = to_pos - from_pos - 1;
+			for (; lit; --lit) *dstpos++ = src[srcpos++];
+			srcpos += count;
 
-        if (count == 0) {
-            if (dstpos+1+lit > dstend) return false;
-            *dstpos++ = 0xFC + lit;
-        } else if (offset < 1024 && 3 <= count && count <= 10) {
-            if (dstpos+2+lit > dstend) return false;
-            *dstpos++ = ((offset >> 3) & 0x60) + ((count-3) * 4) + lit;
-            *dstpos++ = offset;
-        } else if (offset < 16384 && 4 <= count && count <= 67) {
-            if (dstpos+3+lit > dstend) return false;
-            *dstpos++ = 0x80 + (count-4);
-            *dstpos++ = lit * 0x40 + (offset >> 8);
-            *dstpos++ = offset;
-        } else /* if (offset < 131072 && 5 <= count && count <= 1028) */ {
-            if (dstpos+4+lit > dstend) return false;
-            *dstpos++ = 0xC0 + ((offset >> 12) & 0x10) + (((count-5) >> 6) & 0x0C) + lit;
-            *dstpos++ = offset >> 8;
-            *dstpos++ = offset;
-            *dstpos++ = (count-5);
-        }
-
-        for (; lit; --lit) *dstpos++ = src[srcpos++];
-        srcpos += count;
-
-        return true;
-    }
+			return true;
+		}
 };
 
 /*
@@ -294,8 +321,7 @@ public:
   (zlib format), rfc1951.txt (deflate format) and rfc1952.txt (gzip format).
 */
 
-static inline
-unsigned longest_match(
+static inline unsigned longest_match(
     int cur_match,
     const Hash& hash,
     const byte* const src,
@@ -364,20 +390,8 @@ unsigned longest_match(
     return best_len;
 }
 
-/*
- * Try to compress the data and return the result in a buffer (which the
- * caller must delete). If it's uncompressable, return NULL.
- */
-
-int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen)
-{
-    // There are only 3 byte for the uncompressed size in the header,
-    // so I guess we can only compress files smaller than 16MB...
-    if (srclen > 0xFFFFFF) return 0;
-
-    const byte* srcend = src + srclen;
-    byte* dstend = dst + dstlen;
-
+/* Returns the end of the compressed data if successful, or NULL if we overran the output buffer */
+static byte* compress(const byte* src, const byte* srcend, byte* dst, byte* dstend, bool pad) {
     unsigned match_start = 0;
     unsigned match_length = MIN_MATCH-1;           /* length of best match */
     bool match_available = false;         /* set if previous match exists */
@@ -393,7 +407,6 @@ int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen)
     hash.update(src[1]);
 
     while (remaining) {
-
         unsigned prev_length = match_length;
         unsigned prev_match = match_start;
         match_length = MIN_MATCH-1;
@@ -406,7 +419,6 @@ int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen)
         }
 
         if (hash_head >= 0 && prev_length < MAX_LAZY && pos - hash_head <= MAX_DIST) {
-
             match_length = longest_match (hash_head, hash, src, srcend, pos, remaining, prev_length, &match_start);
 
             /* If we can't encode it, drop it. */
@@ -417,7 +429,6 @@ int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen)
          * match is not better, output the previous match:
          */
         if (prev_length >= MIN_MATCH && match_length <= prev_length) {
-
             if (!compressed_output.emit(prev_match, pos-1, prev_length))
                 return 0;
 
@@ -445,16 +456,21 @@ int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen)
             --remaining;
         }
     }
+
     assert(pos == srcend - src);
     if (!compressed_output.emit(pos, pos, 0))
         return 0;
 
     byte* dstsize = compressed_output.get_end();
+    if (pad && dstsize < dstend) {
+        memset(dstsize, 0xFC, dstend-dstsize);
+        dstsize = dstend;
+    }
 
     dbpf_compressed_file_header* hdr = (dbpf_compressed_file_header*)dst;
-    put(hdr->uncompressed_size, dstsize - dst);
+    put(hdr->compressed_size, dstsize - dst);
     put(hdr->compression_id, DBPF_COMPRESSION_QFS);
-    put(hdr->compressed_size, srcend-src);
+    put(hdr->uncompressed_size, srcend-src);
 
-    return dstsize - dst;
+    return dstsize;
 }
