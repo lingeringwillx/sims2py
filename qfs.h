@@ -14,18 +14,18 @@
 typedef unsigned char byte;
 
 extern "C" {
-	
-/*
- * Decompresses src and stores the output in dst.
- * Returns a boolean indicating if the decompression was successful.
- */
-bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen);
 
 /*
  * Compresses src and stores the output in dst.
  * Returns the length of the compressed output if successful, otherwise returns 0.
  */
 int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen);
+
+/*
+ * Decompresses src and stores the output in dst.
+ * Returns a boolean indicating if the decompression was successful.
+ */
+bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen);
 
 }
 
