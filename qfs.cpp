@@ -49,8 +49,6 @@ T* mynew(int n)
 static inline
 void mydelete(void* p) { if (p) free(p); }
 
-static byte* compress(const byte* src, const byte* srcend, byte* dst, byte* dstend, bool pad);
-
 /********************** low-level compression routines **********************/
 
 struct dbpf_compressed_file_header  // 9 bytes
@@ -62,7 +60,7 @@ struct dbpf_compressed_file_header  // 9 bytes
 
 #define DBPF_COMPRESSION_QFS (0xFB10)
 
-bool decompress(const byte* src, int compressed_size, byte* dst, int uncompressed_size, bool truncate) {
+static bool decompress(const byte* src, int compressed_size, byte* dst, int uncompressed_size, bool truncate) {
     const byte* src_end = src + compressed_size;
     byte* dst_end = dst + uncompressed_size;
     byte* dst_start = dst;
@@ -154,22 +152,6 @@ bool decompress(const byte* src, int compressed_size, byte* dst, int uncompresse
         while (src < src_end && *src == 0xFC)
             ++src;
         return (src == src_end && dst == dst_end);
-    }
-}
-
-/*
- * Try to compress the data and return the result in a buffer. If it's uncompressable, return 0.
- */
-int try_compress(const byte* src, int srclen, byte* dst, int dstlen) {
-    // There are only 3 byte for the uncompressed size in the header,
-    // so I guess we can only compress files larger than 16MB...
-    if (srclen < 14 || srclen >= 16777216) return 0;
-
-    byte* dstend = compress(src, src+srclen, dst, dst+dstlen, false);
-    if (dstend) {
-        return dstend - dst;
-    } else {
-        return 0;
     }
 }
 
@@ -473,4 +455,17 @@ static byte* compress(const byte* src, const byte* srcend, byte* dst, byte* dste
     put(hdr->uncompressed_size, srcend-src);
 
     return dstsize;
+}
+
+bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen) {
+	return decompress(src, srclen, dst, dstlen, false);
+}
+
+int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen) {
+    byte* dstend = compress(src, src+srclen, dst, dst+dstlen, false);
+    if (dstend) {
+        return dstend - dst;
+    } else {
+        return 0;
+    }
 }

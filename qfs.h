@@ -16,17 +16,16 @@ typedef unsigned char byte;
 extern "C" {
 	
 /*
- * Decompresses src and stores the output in dst. if truncate is enabled then
- * src will be decompressed up to the size specified in uncompressed_size
- * Returns a boolean indicating if the decompression was successful
+ * Decompresses src and stores the output in dst.
+ * Returns a boolean indicating if the decompression was successful.
  */
-bool decompress(const byte* src, int compressed_size, byte* dst, int uncompressed_size, bool truncate);
+bool qfs_decompress(const byte* src, int srclen, byte* dst, int dstlen);
 
 /*
- * Compresses src and stores the output in dst. Returns the length of
- * the compressed output if successful, otherwise returns 0.
+ * Compresses src and stores the output in dst.
+ * Returns the length of the compressed output if successful, otherwise returns 0.
  */
-int try_compress(const byte* src, int srclen, byte* dst, int dstlen);
+int qfs_compress(const byte* src, int srclen, byte* dst, int dstlen);
 
 }
 
