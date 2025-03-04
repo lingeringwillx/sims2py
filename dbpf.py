@@ -1,4 +1,4 @@
-from structio import StructIO
+from .structio import StructIO
 import ctypes
 import os
 import sys
