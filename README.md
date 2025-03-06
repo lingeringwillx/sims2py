@@ -14,7 +14,7 @@
 
 **Installation:**
 
-Download the build and place it in a folder named 'dbpf'. Outside the folder, create a python file and write `import dbpf` to import the library.
+Download the build and rename the extracted folder to 'dbpf'. Outside the folder, create a python file and write `import dbpf` to import the library.
 
 # Objects
 
