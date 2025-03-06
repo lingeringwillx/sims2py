@@ -14,7 +14,6 @@ named_rcol_types = {0xFB00791E, 0x4D51F042, 0xE519C933, 0xAC4F8687, 0x7BA3838C, 
 named_cpf_types = {0x2C1FD8A1, 0x0C1FE246, 0xEBCF3E27}
 lua_types = {0x9012468A, 0x9012468B}
 
-class RepeatTGIError(Exception): pass
 class CompressionError(Exception): pass
 
 qfs = ctypes.CDLL(os.path.join(os.path.dirname(__file__), 'qfs.dll'))
@@ -279,16 +278,17 @@ class Package:
             for entry in self.entries:
                 entry.compress()
 
-        #check for repeated compressed entries
-        compressed_entries = set()
+        #check for repeated compressed entries, decompress repeats
+        compressed_entries = {}
         for entry in self.entries:
             if entry.compressed:
-                tgi = (entry.type, entry.group, entry.instance, entry.resource)
+                tgir = (entry.type, entry.group, entry.instance, entry.resource)
 
-                if tgi in compressed_entries:
-                    raise RepeatTGIError('Repeat compressed entry found in package')
+                if tgir in compressed_entries:
+                    entry.decompress()
+                    compressed_entries[tgir].decompress()
                 else:
-                    compressed_entries.add(tgi)
+                    compressed_entries[tgir] = entry
 
         #make CLST
         results = search(self.entries, 0xE86B1EEF)
@@ -405,6 +405,3 @@ def search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, ent
         results.append(entry)
 
     return results
-
-def print_hex(b):
-    print(' '.join(f'{i:02X}' for i in b))
