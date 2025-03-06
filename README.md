@@ -97,13 +97,13 @@ Searches the a list of entries for the desired type, group, instance, or resourc
 ## Resources
 General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
 
-Useful image showing the game's entry format: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
+Useful image showing the package file's format: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
 
-Information on the various entry types found in the package file's entries (A little dated): https://modthesims.info/wiki.php?title=List_of_Sims_2_Formats_by_Name
+Information on the various entry types found in the game's package files (A little dated): https://modthesims.info/wiki.php?title=List_of_Sims_2_Formats_by_Name
 
-Information on the compression used by the game's files: https://modthesims.info/wiki.php?title=DBPF_Compression
+Information on the compression algorithm used in the game's files: https://modthesims.info/wiki.php?title=DBPF_Compression
 
-Original code for the library I used for the compression and decompression code: www.moreawesomethanyou.com/smf/index.php/topic,8279.0.html
+Original code for the library I used for the compression and decompression: http://www.moreawesomethanyou.com/smf/index.php/topic,8279.0.html
 
 Notepad++ with the HEX-Editor plugin was useful for viewing the game's files: https://notepad-plus-plus.org/
 
