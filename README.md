@@ -92,7 +92,7 @@ Reads the name of the entry from it's content and writes it to *name*. Returns t
 
 **search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='')**
 
-Searches the a list of entries for the desired type, group, instance, or resource, returns a list of the entries matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *entry_name* is specified, then the function will check if the names of supported file types contain *entry_name*.
+Searches the a list of entries for the desired type, group, instance, or resource, returns a list of the entries matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *entry_name* is specified, then the function will check if the names of supported file types contain *entry_name*. Searching the names requires unpacking the package with the *read_names* argument set to True.
 
 # Resources
 General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
