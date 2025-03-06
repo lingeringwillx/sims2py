@@ -1,10 +1,10 @@
-# Purpose
+## Purpose
 
 1- To make it easier to access and read the game's data.
 
 2- To enable quick script editing of the game's files.
 
-# Getting Started
+## Getting Started
 
 **Requirements:** 
 
@@ -16,13 +16,13 @@
 
 Download the build and rename the extracted folder to 'dbpf'. Outside the folder, create a python file and write `import dbpf` to import the library.
 
-# Objects
+## Objects
 
-## Package
+### Package
 
 Creates an object resembling the structure of a *.package* file.
 
-### Attributes
+#### Attributes
 
 **header** (Header): Contains the [header](#Header)
 
@@ -30,7 +30,7 @@ Creates an object resembling the structure of a *.package* file.
 
 **path** (str): The path of the file that was used to create the Package object.
 
-### Methods
+#### Methods
 
 **Package()**
 
@@ -48,11 +48,11 @@ Converts the Package object into a package file and writes it to a file with the
 
 Creates a copy of the package and returns it.
 
-## Entry
+### Entry
 
 Inherits from [StructIO](https://github.com/lingeringwillx/StructIO).
 
-### Attributes
+#### Attributes
 
 **type** (int): Entry type.
 
@@ -66,7 +66,7 @@ Inherits from [StructIO](https://github.com/lingeringwillx/StructIO).
 
 **name** (str): Contains the name of the entry for supported entry types. Keep in mind that changing this value will not change the actual name in the entry's content.
 
-### Methods
+#### Methods
 
 **Entry(type_id, group_id, instance_id, resource_id=0, name='', content=b'', compressed=False)**
 
@@ -88,13 +88,13 @@ Decompresses the content of the entry. If the content of the entry is already de
 
 Reads the name of the entry from it's content and writes it to *name*. Returns the name of the entry if the entry's type is supported, otherwise returns an empty string.
 
-# Functions
+## Functions
 
 **search(entries, type_id=-1, group_id=-1, instance_id=-1, resource_id=-1, entry_name='')**
 
 Searches the a list of entries for the desired type, group, instance, or resource, returns a list of the entries matching the criteria. if any of the arguments is set equal to -1 then the the function will ignore that specific argument. If *entry_name* is specified, then the function will check if the names of supported file types contain *entry_name*. Searching the names requires unpacking the package with the *read_names* argument set to True.
 
-# Resources
+## Resources
 General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
 
 Useful image showing the game's entry format: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
