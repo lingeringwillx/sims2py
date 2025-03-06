@@ -295,7 +295,8 @@ class Package:
         compressed_entries = [entry for entry in self.entries if entry.compressed]
 
         if len(results) > 0:
-            self.entries.remove(results[0])
+            for result in results:
+                self.entries.remove(result)
 
         if len(compressed_entries) > 0:
             clst = Entry(0xE86B1EEF, 0xE86B1EEF, 0x286B1F03, 0x00000000)
