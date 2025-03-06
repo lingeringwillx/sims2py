@@ -97,7 +97,7 @@ Searches the a list of entries for the desired type, group, instance, or resourc
 ## Resources
 General information on DBPF (Package) files (A little dated): https://modthesims.info/wiki.php?title=DBPF
 
-Useful image showing the package file's format: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
+Useful image showing the structure of a package file: https://simswiki.info/images/e/e8/DBPF_File_Format_v1.1.png
 
 Information on the various entry types found in the game's package files (A little dated): https://modthesims.info/wiki.php?title=List_of_Sims_2_Formats_by_Name
 
