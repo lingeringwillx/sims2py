@@ -44,24 +44,24 @@ class Header:
         self.remainder = b'\x00' * 32
 
     def __str__(self):
-        display = 'Header:\n'
-        display += 'major version: {}\n'.format(self.major_version)
-        display += 'minor version: {}\n'.format(self.minor_version)
-        display += 'major user version: {}\n'.format(self.major_user_version)
-        display += 'minor user version: {}\n'.format(self.minor_user_version)
-        display += 'flags: {}\n'.format(self.flags)
-        display += 'created date: {}\n'.format(self.created_date)
-        display += 'modified date: {}\n'.format(self.modified_date)
-        display += 'index major version: {}\n'.format(self.index_major_version)
-        display += 'index entry count: {}\n'.format(self.index_entry_count)
-        display += 'index location: {}\n'.format(self.index_location)
-        display += 'index size: {}\n'.format(self.index_size)
-        display += 'hole index entry count: {}\n'.format(self.hole_index_entry_count)
-        display += 'hole index location: {}\n'.format(self.hole_index_location)
-        display += 'hole index size: {}\n'.format(self.hole_index_size)
-        display += 'index minor version: {}'.format(self.index_minor_version)
+        string = 'Header:\n'
+        string += 'major version: {}\n'.format(self.major_version)
+        string += 'minor version: {}\n'.format(self.minor_version)
+        string += 'major user version: {}\n'.format(self.major_user_version)
+        string += 'minor user version: {}\n'.format(self.minor_user_version)
+        string += 'flags: {}\n'.format(self.flags)
+        string += 'created date: {}\n'.format(self.created_date)
+        string += 'modified date: {}\n'.format(self.modified_date)
+        string += 'index major version: {}\n'.format(self.index_major_version)
+        string += 'index entry count: {}\n'.format(self.index_entry_count)
+        string += 'index location: {}\n'.format(self.index_location)
+        string += 'index size: {}\n'.format(self.index_size)
+        string += 'hole index entry count: {}\n'.format(self.hole_index_entry_count)
+        string += 'hole index location: {}\n'.format(self.hole_index_location)
+        string += 'hole index size: {}\n'.format(self.hole_index_size)
+        string += 'index minor version: {}'.format(self.index_minor_version)
 
-        return display
+        return string
 
     def copy(self):
         header = Header()
@@ -84,11 +84,11 @@ class Entry(StructIO):
 
     def __str__(self):
         if self.name == '':
-            name_display = ''
+            string = ''
         else:
-            name_display = '{}\n'.format(self.name)
+            string = '{}\n'.format(self.name)
 
-        return name_display + 'Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(self.type, self.group, self.instance, self.resource)
+        return string + 'Type: 0x{:08X}, Group: 0x{:08X}, Instance: 0x{:08X}, Resource: 0x{:08X}'.format(self.type, self.group, self.instance, self.resource)
 
     def copy(self):
         return Entry(self.type, self.group, self.instance, self.resource, name=self.name, content=self.buffer, compressed=self.compressed)
