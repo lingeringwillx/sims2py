@@ -24,11 +24,11 @@ Creates an object resembling the structure of a *.package* file.
 
 #### Attributes
 
+**path** (str): The path of the file that was used to create the Package object.
+
 **header** (Header): Contains the [header](#Header)
 
 **entries** (list\[Entry]): Contains instances of [Entry](#Entry).
-
-**path** (str): The path of the file that was used to create the Package object.
 
 #### Methods
 

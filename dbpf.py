@@ -64,11 +64,11 @@ class Header:
         return display
 
     def copy(self):
-        header_copy = Header()
+        header = Header()
         for key, value in vars(self).items():
-            setattr(header_copy, key, value)
+            setattr(header, key, value)
 
-        return header_copy
+        return header
 
 class Entry(StructIO):
     def __init__(self, type_id, group_id, instance_id, resource_id=0, location=None, size=None, name='', content=b'', compressed=False):
@@ -168,17 +168,17 @@ class Entry(StructIO):
 
 class Package:
     def __init__(self):
+        self.path = ''
         self.header = Header()
         self.entries = []
-        self.path = ''
 
     def copy(self):
-        package_copy = Package()
-        package_copy.header = self.header.copy()
-        package_copy.entries = [entry.copy() for entry in self.entries]
-        package_copy.path = self.path
+        package = Package()
+        package.path = self.path
+        package.header = self.header.copy()
+        package.entries = [entry.copy() for entry in self.entries]
 
-        return package_copy
+        return package
 
     def unpack(path, decompress=False, read_names=False):
         with open(path, 'rb') as file:
