@@ -26,7 +26,7 @@ Creates an object resembling the structure of a *.package* file.
 
 **path** (str): The path of the file that was used to create the Package object.
 
-**header** (Header): Contains the [header](#Header)
+**header** (Header): Contains the header.
 
 **entries** (list\[Entry]): Contains instances of [Entry](#Entry).
 
