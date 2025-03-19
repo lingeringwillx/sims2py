@@ -83,11 +83,11 @@ class StructIO(io.BytesIO):
             return self.write(b'\x00')
 
     def read_bits(self):
-        number = self.read_int(1)
+        number = self.read(1)[0]
         return [number >> i & 1 for i in range(8)]
 
     def write_bits(self, bits):
-        return self.write_int(sum(bits[i] << i for i in range(8)), 1)
+        return self.write(sum(bits[i] << i for i in range(8)).to_bytes(1))
 
     def read_int(self, size, endian=None, signed=False):
         return int.from_bytes(self.read(size), self._get_endian(endian), signed=signed)

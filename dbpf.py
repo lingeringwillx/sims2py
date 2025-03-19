@@ -250,17 +250,17 @@ class Package:
 
             clst.seek(0)
 
-        #check if compressed
-        for entry in self.entries:
-            entry.compressed = (entry.type, entry.group, entry.instance, entry.resource) in clst_entries
-
-        #decompress entries
-        if decompress:
+            #check if compressed
             for entry in self.entries:
-                try:
-                    entry.decompress()
-                except CompressionError:
-                    pass
+                entry.compressed = (entry.type, entry.group, entry.instance, entry.resource) in clst_entries
+
+            #decompress entries
+            if decompress:
+                for entry in self.entries:
+                    try:
+                        entry.decompress()
+                    except CompressionError:
+                        pass
 
         #read entry names
         if read_names:
